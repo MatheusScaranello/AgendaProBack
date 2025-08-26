@@ -3,7 +3,7 @@ const express = require('express');
 // Cria um novo roteador utilizando o Express
 const router = express.Router();
 // Importa o controlador de Estabelecimentos
-const estabelecimentosController = require('../controller/Estabelecimentos');
+const estabelecimentosController = require('../controller/Estabelecimento.js');
 
 // Define as rotas para estabelecimentos
 router.get('/', estabelecimentosController.getEstabelecimentos);

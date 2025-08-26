@@ -19,6 +19,22 @@ async function getProfissionais(req, res) {
     }
 }
 
+async function getProfissionalById(req, res) {
+    const { id } = req.params;
+
+    try {
+        const result = await pool.query("SELECT * FROM profissionais WHERE id = $1", [id]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: "Profissional não encontrado" });
+        }
+        res.status(200).json(result.rows[0]);
+    } catch (error) {
+        console.error("Erro ao obter profissional:", error);
+        res.status(500).json({ error: "Erro ao obter profissional" });
+    }
+}
+
+
 async function createProfissional(req, res) {
     const { nome, valor_recebido, estabelecimento_id } = req.body;
 

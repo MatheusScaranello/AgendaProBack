@@ -14,7 +14,7 @@
 const pool = require("../config/dbConfig");
 
 // Função assíncrona para obter todos os estabelecimentos
-async function getEstabelecimento(req, res) {
+async function getEstabelecimentos(req, res) {
     try {
         const result = await pool.query("SELECT * FROM estabelecimentos");
         res.status(200).json(result.rows);
