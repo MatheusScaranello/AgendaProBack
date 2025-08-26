@@ -5,6 +5,7 @@ CREATE TABLE Estabelecimento (
     email VARCHAR(255) UNIQUE NOT NULL,
     telefone VARCHAR(20),
     plano VARCHAR(100),
+    ultima_atualizacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     senha TEXT NOT NULL
 );
 
