@@ -7,6 +7,7 @@ const {
     getEstablishmentById,
     updateEstablishment,
     deleteEstablishment,
+    getEstablishmentByEmail, // << IMPORTE AQUI
 } = require('../controller/establishments');
 
 const router = Router();
@@ -16,14 +17,14 @@ router.route('/')
     .get(listEstablishments)
     .post(createEstablishment);
 
-// Rotas para buscar, atualizar e deletar um estabelecimento específico
+// Rota específica para buscar por e-mail
+// Ex: GET /api/establishments/email/contato@exemplo.com
+router.get('/email/:email', getEstablishmentByEmail);
+
+// Rotas para buscar, atualizar e deletar um estabelecimento específico por ID
 router.route('/:id')
     .get(getEstablishmentById)
     .put(updateEstablishment)
     .delete(deleteEstablishment);
-
-// Rota para obter um estabelecimento pelo e-mail
-router.route('/email/:email')
-    .get(getEstablishmentByEmail);
 
 module.exports = router;

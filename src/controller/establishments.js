@@ -51,11 +51,11 @@ const listEstablishments = async (req, res, next) => {
 
 // obter por e-mail
 const getEstablishmentByEmail = async (req, res, next) => {
-    const { email } = req.params;
+    const { email } = req.params; // Pega o e-mail da URL
     try {
-        const result = await db.query('SELECT * FROM establishments WHERE email = $1', [email]);
+        const result = await db.query('SELECT id, name, email FROM establishments WHERE email = $1', [email]);
         if (result.rows.length === 0) {
-            return res.status(404).json({ message: 'Estabelecimento não encontrado.' });
+            return res.status(404).json({ message: 'Estabelecimento com este e-mail não encontrado.' });
         }
         res.status(200).json(result.rows[0]);
     } catch (error) {
@@ -125,8 +125,8 @@ const deleteEstablishment = async (req, res, next) => {
 module.exports = {
     createEstablishment,
     listEstablishments,
-    getEstablishmentByEmail,
     getEstablishmentById,
     updateEstablishment,
     deleteEstablishment,
+    getEstablishmentByEmail
 };
