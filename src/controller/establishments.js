@@ -49,6 +49,20 @@ const listEstablishments = async (req, res, next) => {
     }
 };
 
+// obter por e-mail
+const getEstablishmentByEmail = async (req, res, next) => {
+    const { email } = req.params;
+    try {
+        const result = await db.query('SELECT * FROM establishments WHERE email = $1', [email]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Estabelecimento não encontrado.' });
+        }
+        res.status(200).json(result.rows[0]);
+    } catch (error) {
+        next(error);
+    }
+};
+
 /**
  * Obtém um estabelecimento específico pelo seu ID.
  */
@@ -111,6 +125,7 @@ const deleteEstablishment = async (req, res, next) => {
 module.exports = {
     createEstablishment,
     listEstablishments,
+    getEstablishmentByEmail,
     getEstablishmentById,
     updateEstablishment,
     deleteEstablishment,

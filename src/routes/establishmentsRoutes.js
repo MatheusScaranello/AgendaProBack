@@ -22,4 +22,8 @@ router.route('/:id')
     .put(updateEstablishment)
     .delete(deleteEstablishment);
 
+// Rota para obter um estabelecimento pelo e-mail
+router.route('/email/:email')
+    .get(getEstablishmentByEmail);
+
 module.exports = router;
