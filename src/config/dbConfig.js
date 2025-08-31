@@ -1,15 +1,17 @@
-// dbConfig.js
-require('dotenv').config(); // Carrega as variáveis de ambiente do arquivo .env
-const { Pool } = require('pg');
+// src/config/dbConfig.js
 
-// Configuração do pool de conexões.
-// A biblioteca 'pg' usará automaticamente a variável DATABASE_URL do seu ambiente.
+const { Pool } = require('pg');
+require('dotenv').config();
+
+// O cliente 'pg' vai ler a variável de ambiente DATABASE_URL automaticamente
+// e entender todas as informações de conexão a partir dela.
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
-    rejectUnauthorized: false,
-  },
+    rejectUnauthorized: false
+  }
 });
 
-// Exporta o pool para ser utilizado em outras partes da sua aplicação
-module.exports = pool;
+module.exports = {
+  query: (text, params) => pool.query(text, params),
+};

@@ -1,13 +1,5 @@
--- Habilitar a extensão para UUIDs, ideal para chaves primárias únicas.
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
---==============================================================================
--- ESQUEMA CORE: A base operacional do sistema.
---==============================================================================
-CREATE SCHEMA core;
-
 -- Tabela para estabelecimentos/clínicas.
-CREATE TABLE core.establishments (
+CREATE TABLE establishments (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) NOT NULL,
     trade_name VARCHAR(255),
@@ -20,9 +12,9 @@ CREATE TABLE core.establishments (
 );
 
 -- Tabela de profissionais/colaboradores.
-CREATE TABLE core.professionals (
+CREATE TABLE professionals (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    establishment_id UUID NOT NULL REFERENCES core.establishments(id) ON DELETE CASCADE,
+    establishment_id UUID NOT NULL REFERENCES establishments(id) ON DELETE CASCADE,
     full_name VARCHAR(255) NOT NULL,
     phone VARCHAR(20),
     email VARCHAR(255) UNIQUE NOT NULL,
@@ -33,9 +25,9 @@ CREATE TABLE core.professionals (
 );
 
 -- Tabela de serviços oferecidos.
-CREATE TABLE core.services (
+CREATE TABLE services (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    establishment_id UUID NOT NULL REFERENCES core.establishments(id) ON DELETE CASCADE,
+    establishment_id UUID NOT NULL REFERENCES establishments(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
     description TEXT,
     duration_minutes INT NOT NULL,
@@ -46,16 +38,16 @@ CREATE TABLE core.services (
 );
 
 -- Tabela de associação entre profissionais e serviços.
-CREATE TABLE core.professional_services (
-    professional_id UUID NOT NULL REFERENCES core.professionals(id) ON DELETE CASCADE,
-    service_id UUID NOT NULL REFERENCES core.services(id) ON DELETE CASCADE,
+CREATE TABLE professional_services (
+    professional_id UUID NOT NULL REFERENCES professionals(id) ON DELETE CASCADE,
+    service_id UUID NOT NULL REFERENCES services(id) ON DELETE CASCADE,
     PRIMARY KEY (professional_id, service_id)
 );
 
 -- Tabela para salas e equipamentos de uso agendado.
-CREATE TABLE core.assets (
+CREATE TABLE assets (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    establishment_id UUID NOT NULL REFERENCES core.establishments(id) ON DELETE CASCADE,
+    establishment_id UUID NOT NULL REFERENCES establishments(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
     type VARCHAR(50) NOT NULL, -- 'Sala' ou 'Equipamento'
     is_active BOOLEAN DEFAULT TRUE,
@@ -63,50 +55,10 @@ CREATE TABLE core.assets (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
---==============================================================================
--- ESQUEMA SCHEDULING: Gerencia agendamentos, o coração operacional.
---==============================================================================
-CREATE SCHEMA scheduling;
-
--- Tabela principal de agendamentos.
-CREATE TABLE scheduling.appointments (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    establishment_id UUID NOT NULL REFERENCES core.establishments(id) ON DELETE CASCADE,
-    client_id UUID NOT NULL, -- Referência à tabela de clientes no esquema crm
-    professional_id UUID NOT NULL REFERENCES core.professionals(id) ON DELETE RESTRICT,
-    service_id UUID NOT NULL REFERENCES core.services(id) ON DELETE RESTRICT,
-    asset_id UUID REFERENCES core.assets(id) ON DELETE SET NULL, -- Sala ou equipamento
-    start_time TIMESTAMP WITH TIME ZONE NOT NULL,
-    end_time TIMESTAMP WITH TIME ZONE NOT NULL,
-    status VARCHAR(50) NOT NULL DEFAULT 'Agendado', -- Ex: Agendado, Confirmado, Concluído, Cancelado, No-Show
-    notes TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Adicionando a chave estrangeira para client_id após a criação do esquema CRM
--- ALTER TABLE scheduling.appointments ADD CONSTRAINT fk_client FOREIGN KEY (client_id) REFERENCES crm.clients(id) ON DELETE CASCADE;
-
--- Tabela para bloqueios e ausências na agenda dos profissionais.
-CREATE TABLE scheduling.absences (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    professional_id UUID NOT NULL REFERENCES core.professionals(id) ON DELETE CASCADE,
-    start_time TIMESTAMP WITH TIME ZONE NOT NULL,
-    end_time TIMESTAMP WITH TIME ZONE NOT NULL,
-    reason TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
-
---==============================================================================
--- ESQUEMA CRM: Gerencia o relacionamento com o cliente.
---==============================================================================
-CREATE SCHEMA crm;
-
 -- Tabela de clientes.
-CREATE TABLE crm.clients (
+CREATE TABLE clients (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    establishment_id UUID NOT NULL REFERENCES core.establishments(id) ON DELETE CASCADE,
+    establishment_id UUID NOT NULL REFERENCES establishments(id) ON DELETE CASCADE,
     full_name VARCHAR(255) NOT NULL,
     phone VARCHAR(20),
     email VARCHAR(255) UNIQUE,
@@ -120,17 +72,38 @@ CREATE TABLE crm.clients (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
---==============================================================================
--- ESQUEMA FINANCIAL: Controle financeiro e de vendas.
---==============================================================================
-CREATE SCHEMA financial;
+-- Tabela principal de agendamentos.
+CREATE TABLE appointments (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    establishment_id UUID NOT NULL REFERENCES establishments(id) ON DELETE CASCADE,
+    client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+    professional_id UUID NOT NULL REFERENCES professionals(id) ON DELETE RESTRICT,
+    service_id UUID NOT NULL REFERENCES services(id) ON DELETE RESTRICT,
+    asset_id UUID REFERENCES assets(id) ON DELETE SET NULL, -- Sala ou equipamento
+    start_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    end_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'Agendado', -- Ex: Agendado, Confirmado, Concluído, Cancelado, No-Show
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabela para bloqueios e ausências na agenda dos profissionais.
+CREATE TABLE absences (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    professional_id UUID NOT NULL REFERENCES professionals(id) ON DELETE CASCADE,
+    start_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    end_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    reason TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
 
 -- Tabela de vendas/transações.
-CREATE TABLE financial.sales (
+CREATE TABLE sales (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    establishment_id UUID NOT NULL REFERENCES core.establishments(id) ON DELETE CASCADE,
-    client_id UUID NOT NULL REFERENCES crm.clients(id),
-    appointment_id UUID UNIQUE REFERENCES scheduling.appointments(id),
+    establishment_id UUID NOT NULL REFERENCES establishments(id) ON DELETE CASCADE,
+    client_id UUID NOT NULL REFERENCES clients(id),
+    appointment_id UUID UNIQUE REFERENCES appointments(id),
     total_amount NUMERIC(10, 2) NOT NULL,
     discount NUMERIC(10, 2) DEFAULT 0.00,
     final_amount NUMERIC(10, 2) NOT NULL,
@@ -139,46 +112,10 @@ CREATE TABLE financial.sales (
     transaction_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabela de itens da venda (serviços e produtos).
-CREATE TABLE financial.sale_items (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    sale_id UUID NOT NULL REFERENCES financial.sales(id) ON DELETE CASCADE,
-    service_id UUID REFERENCES core.services(id),
-    product_id UUID, -- Referência à tabela de produtos no esquema inventory
-    quantity INT NOT NULL,
-    unit_price NUMERIC(10, 2) NOT NULL,
-    total_price NUMERIC(10, 2) NOT NULL
-);
-
--- Tabela para comissões dos profissionais.
-CREATE TABLE financial.commissions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    sale_item_id UUID NOT NULL REFERENCES financial.sale_items(id),
-    professional_id UUID NOT NULL REFERENCES core.professionals(id),
-    commission_percentage NUMERIC(5, 2),
-    commission_value NUMERIC(10, 2) NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Tabela para controle de caixa.
-CREATE TABLE financial.cash_flow (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    establishment_id UUID NOT NULL REFERENCES core.establishments(id) ON DELETE CASCADE,
-    type VARCHAR(10) NOT NULL, -- 'Entrada' ou 'Saída'
-    description TEXT NOT NULL,
-    amount NUMERIC(10, 2) NOT NULL,
-    transaction_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
---==============================================================================
--- ESQUEMA INVENTORY: Gestão de estoque.
---==============================================================================
-CREATE SCHEMA inventory;
-
 -- Tabela de produtos.
-CREATE TABLE inventory.products (
+CREATE TABLE products (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    establishment_id UUID NOT NULL REFERENCES core.establishments(id) ON DELETE CASCADE,
+    establishment_id UUID NOT NULL REFERENCES establishments(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
     sku VARCHAR(100) UNIQUE,
     description TEXT,
@@ -190,16 +127,43 @@ CREATE TABLE inventory.products (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabela para controle de lotes e validades.
-CREATE TABLE inventory.product_batches (
+-- Tabela de itens da venda (serviços e produtos).
+CREATE TABLE sale_items (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    product_id UUID NOT NULL REFERENCES inventory.products(id) ON DELETE CASCADE,
+    sale_id UUID NOT NULL REFERENCES sales(id) ON DELETE CASCADE,
+    service_id UUID REFERENCES services(id),
+    product_id UUID REFERENCES products(id),
+    quantity INT NOT NULL,
+    unit_price NUMERIC(10, 2) NOT NULL,
+    total_price NUMERIC(10, 2) NOT NULL
+);
+
+-- Tabela para comissões dos profissionais.
+CREATE TABLE commissions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    sale_item_id UUID NOT NULL REFERENCES sale_items(id),
+    professional_id UUID NOT NULL REFERENCES professionals(id),
+    commission_percentage NUMERIC(5, 2),
+    commission_value NUMERIC(10, 2) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabela para controle de caixa.
+CREATE TABLE cash_flow (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    establishment_id UUID NOT NULL REFERENCES establishments(id) ON DELETE CASCADE,
+    type VARCHAR(10) NOT NULL, -- 'Entrada' ou 'Saída'
+    description TEXT NOT NULL,
+    amount NUMERIC(10, 2) NOT NULL,
+    transaction_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabela para controle de lotes e validades.
+CREATE TABLE product_batches (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
     batch_number VARCHAR(100),
     expiration_date DATE,
     quantity INT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
-
--- Adição das chaves estrangeiras que dependem de outros esquemas.
-ALTER TABLE scheduling.appointments ADD CONSTRAINT fk_client FOREIGN KEY (client_id) REFERENCES crm.clients(id) ON DELETE CASCADE;
-ALTER TABLE financial.sale_items ADD CONSTRAINT fk_product FOREIGN KEY (product_id) REFERENCES inventory.products(id);
