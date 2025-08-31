@@ -7,6 +7,7 @@ const {
     getEstablishmentById,
     updateEstablishment,
     deleteEstablishment,
+    loginEstablishment,
     getEstablishmentByEmail, // << IMPORTE AQUI
 } = require('../controller/establishments');
 
@@ -26,5 +27,9 @@ router.route('/:id')
     .get(getEstablishmentById)
     .put(updateEstablishment)
     .delete(deleteEstablishment);
+
+
+// Rota para autenticação
+router.post('/login', loginEstablishment);
 
 module.exports = router;

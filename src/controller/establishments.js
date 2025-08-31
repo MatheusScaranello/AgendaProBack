@@ -1,6 +1,7 @@
 const db = require('../config/dbConfig');
 const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcrypt'); // 1. Importe o bcrypt
+const jwt = require('jsonwebtoken');
 
 /**
  * Cria um novo estabelecimento com senha criptografada.
@@ -122,11 +123,58 @@ const deleteEstablishment = async (req, res, next) => {
     }
 };
 
+/**
+ * Autentica um estabelecimento e retorna um token JWT.
+ */
+const loginEstablishment = async (req, res, next) => {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+        return res.status(400).json({ message: 'E-mail and password are required.' });
+    }
+
+    try {
+        // 1. Encontra o estabelecimento pelo e-mail
+        const result = await db.query('SELECT * FROM establishments WHERE email = $1', [email]);
+        if (result.rows.length === 0) {
+            return res.status(401).json({ message: 'E-mail ou senha incorretos.' });
+        }
+        const establishment = result.rows[0];
+
+        // 2. Compara a senha enviada com o hash salvo no banco
+        const isPasswordValid = await bcrypt.compare(password, establishment.password_hash);
+        if (!isPasswordValid) {
+            return res.status(401).json({ message: 'E-mail ou senha incorretos.' });
+        }
+
+        // 3. Se a senha for válida, cria um token JWT
+        const token = jwt.sign(
+            { id: establishment.id, email: establishment.email },
+            process.env.JWT_SECRET,
+            { expiresIn: '8h' } // Token expira em 8 horas
+        );
+
+        // 4. Envia o token e dados básicos do usuário (sem a senha)
+        res.status(200).json({
+            message: 'Login bem-sucedido!',
+            token,
+            establishment: {
+                id: establishment.id,
+                name: establishment.name,
+                email: establishment.email
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     createEstablishment,
     listEstablishments,
     getEstablishmentById,
     updateEstablishment,
     deleteEstablishment,
-    getEstablishmentByEmail
+    getEstablishmentByEmail,
+    loginEstablishment
 };
