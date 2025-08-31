@@ -1,6 +1,6 @@
 -- Tabela para estabelecimentos/clínicas.
 CREATE TABLE establishments (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     trade_name VARCHAR(255),
     phone VARCHAR(20),
@@ -13,7 +13,7 @@ CREATE TABLE establishments (
 
 -- Tabela de profissionais/colaboradores.
 CREATE TABLE professionals (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY,
     establishment_id UUID NOT NULL REFERENCES establishments(id) ON DELETE CASCADE,
     full_name VARCHAR(255) NOT NULL,
     phone VARCHAR(20),
@@ -26,7 +26,7 @@ CREATE TABLE professionals (
 
 -- Tabela de serviços oferecidos.
 CREATE TABLE services (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY,
     establishment_id UUID NOT NULL REFERENCES establishments(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
     description TEXT,
@@ -46,10 +46,10 @@ CREATE TABLE professional_services (
 
 -- Tabela para salas e equipamentos de uso agendado.
 CREATE TABLE assets (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY,
     establishment_id UUID NOT NULL REFERENCES establishments(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
-    type VARCHAR(50) NOT NULL, -- 'Sala' ou 'Equipamento'
+    type VARCHAR(50) NOT NULL,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -57,7 +57,7 @@ CREATE TABLE assets (
 
 -- Tabela de clientes.
 CREATE TABLE clients (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY,
     establishment_id UUID NOT NULL REFERENCES establishments(id) ON DELETE CASCADE,
     full_name VARCHAR(255) NOT NULL,
     phone VARCHAR(20),
@@ -74,15 +74,15 @@ CREATE TABLE clients (
 
 -- Tabela principal de agendamentos.
 CREATE TABLE appointments (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY,
     establishment_id UUID NOT NULL REFERENCES establishments(id) ON DELETE CASCADE,
     client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
     professional_id UUID NOT NULL REFERENCES professionals(id) ON DELETE RESTRICT,
     service_id UUID NOT NULL REFERENCES services(id) ON DELETE RESTRICT,
-    asset_id UUID REFERENCES assets(id) ON DELETE SET NULL, -- Sala ou equipamento
+    asset_id UUID REFERENCES assets(id) ON DELETE SET NULL,
     start_time TIMESTAMP WITH TIME ZONE NOT NULL,
     end_time TIMESTAMP WITH TIME ZONE NOT NULL,
-    status VARCHAR(50) NOT NULL DEFAULT 'Agendado', -- Ex: Agendado, Confirmado, Concluído, Cancelado, No-Show
+    status VARCHAR(50) NOT NULL DEFAULT 'Agendado',
     notes TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -90,7 +90,7 @@ CREATE TABLE appointments (
 
 -- Tabela para bloqueios e ausências na agenda dos profissionais.
 CREATE TABLE absences (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY,
     professional_id UUID NOT NULL REFERENCES professionals(id) ON DELETE CASCADE,
     start_time TIMESTAMP WITH TIME ZONE NOT NULL,
     end_time TIMESTAMP WITH TIME ZONE NOT NULL,
@@ -100,7 +100,7 @@ CREATE TABLE absences (
 
 -- Tabela de vendas/transações.
 CREATE TABLE sales (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY,
     establishment_id UUID NOT NULL REFERENCES establishments(id) ON DELETE CASCADE,
     client_id UUID NOT NULL REFERENCES clients(id),
     appointment_id UUID UNIQUE REFERENCES appointments(id),
@@ -108,13 +108,13 @@ CREATE TABLE sales (
     discount NUMERIC(10, 2) DEFAULT 0.00,
     final_amount NUMERIC(10, 2) NOT NULL,
     payment_method VARCHAR(50),
-    status VARCHAR(50) DEFAULT 'Pendente', -- Pendente, Pago, Cancelado
+    status VARCHAR(50) DEFAULT 'Pendente',
     transaction_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Tabela de produtos.
 CREATE TABLE products (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY,
     establishment_id UUID NOT NULL REFERENCES establishments(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
     sku VARCHAR(100) UNIQUE,
@@ -129,7 +129,7 @@ CREATE TABLE products (
 
 -- Tabela de itens da venda (serviços e produtos).
 CREATE TABLE sale_items (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY,
     sale_id UUID NOT NULL REFERENCES sales(id) ON DELETE CASCADE,
     service_id UUID REFERENCES services(id),
     product_id UUID REFERENCES products(id),
@@ -140,7 +140,7 @@ CREATE TABLE sale_items (
 
 -- Tabela para comissões dos profissionais.
 CREATE TABLE commissions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY,
     sale_item_id UUID NOT NULL REFERENCES sale_items(id),
     professional_id UUID NOT NULL REFERENCES professionals(id),
     commission_percentage NUMERIC(5, 2),
@@ -150,9 +150,9 @@ CREATE TABLE commissions (
 
 -- Tabela para controle de caixa.
 CREATE TABLE cash_flow (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY,
     establishment_id UUID NOT NULL REFERENCES establishments(id) ON DELETE CASCADE,
-    type VARCHAR(10) NOT NULL, -- 'Entrada' ou 'Saída'
+    type VARCHAR(10) NOT NULL,
     description TEXT NOT NULL,
     amount NUMERIC(10, 2) NOT NULL,
     transaction_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -160,7 +160,7 @@ CREATE TABLE cash_flow (
 
 -- Tabela para controle de lotes e validades.
 CREATE TABLE product_batches (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY,
     product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
     batch_number VARCHAR(100),
     expiration_date DATE,
