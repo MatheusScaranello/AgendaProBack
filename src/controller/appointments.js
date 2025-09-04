@@ -1,208 +1,199 @@
+// src/controller/appointments.js
+
 const db = require('../config/dbConfig');
+const { v4: uuidv4 } = require('uuid');
 
-// --- OPERAÇÃO SUPREMA: BUSCAR AGENDAMENTOS COM DADOS RELACIONADOS ---
-const getAllAppointments = async (req, res) => {
+/**
+ * Cria um novo agendamento, verificando conflitos de horário.
+ */
+const createAppointment = async (req, res, next) => {
+    const {
+        establishment_id,
+        client_id,
+        professional_id,
+        service_id,
+        asset_id, // opcional
+        start_time,
+        notes
+    } = req.body;
+
+    const newId = uuidv4();
+    const client = await db.query('BEGIN'); // Inicia a transação para garantir a consistência
+
     try {
-        const { professional_id, establishment_id, start_date, end_date, client_id, service_id, status } = req.query;
+        // 1. Busca o serviço para saber a duração e calcular o horário de término
+        const serviceResult = await db.query('SELECT duration_minutes FROM services WHERE id = $1', [service_id]);
+        if (serviceResult.rows.length === 0) {
+            throw new Error('Serviço não encontrado');
+        }
+        const { duration_minutes } = serviceResult.rows[0];
+        const startTimeDate = new Date(start_time);
+        const endTimeDate = new Date(startTimeDate.getTime() + duration_minutes * 60000);
 
-        // A base da nossa query agora une as 3 tabelas essenciais.
-        let query = `
-            SELECT 
-                a.*,
-                c.id as client_nested_id,
-                c.full_name as client_name,
-                c.phone as client_phone,
-                s.id as service_nested_id,
-                s.name as service_name,
-                s.price as service_price,
-                s.duration_minutes as service_duration
-            FROM appointments a
-            LEFT JOIN clients c ON a.client_id = c.id
-            LEFT JOIN services s ON a.service_id = s.id
+        // 2. Verifica se há conflitos de horário para o profissional
+        const professionalConflictQuery = `
+            SELECT id FROM appointments
+            WHERE professional_id = $1
+            AND status NOT IN ('Cancelado', 'No-Show')
+            AND (start_time, end_time) OVERLAPS ($2, $3)
         `;
+        const professionalConflictResult = await db.query(professionalConflictQuery, [professional_id, startTimeDate, endTimeDate]);
+
+        if (professionalConflictResult.rows.length > 0) {
+            throw new Error('Conflito de horário: O profissional já possui um agendamento neste período.');
+        }
         
-        const whereClauses = [];
-        const queryParams = [];
+        // 3. ADICIONADO: Verifica se há conflitos de horário para o recurso (asset_id)
+        if (asset_id) {
+            const assetConflictQuery = `
+                SELECT id FROM appointments
+                WHERE asset_id = $1
+                AND status NOT IN ('Cancelado', 'No-Show')
+                AND (start_time, end_time) OVERLAPS ($2, $3)
+            `;
+            const assetConflictResult = await db.query(assetConflictQuery, [asset_id, startTimeDate, endTimeDate]);
 
-        if (professional_id) {
-            whereClauses.push('a.professional_id = ?');
-            queryParams.push(professional_id);
-        }
-        if (establishment_id) {
-            whereClauses.push('a.establishment_id = ?');
-            queryParams.push(establishment_id);
-        }
-        if (client_id) {
-            whereClauses.push('a.client_id = ?');
-            queryParams.push(client_id);
-        }
-        if (service_id) {
-            whereClauses.push('a.service_id = ?');
-            queryParams.push(service_id);
-        }
-        if (status) {
-            whereClauses.push('a.status = ?');
-            queryParams.push(status);
-        }
-        if (start_date && end_date) {
-            whereClauses.push('DATE(a.start_time) BETWEEN ? AND ?');
-            queryParams.push(start_date, end_date);
-        } else if (start_date) {
-            whereClauses.push('DATE(a.start_time) = ?');
-            queryParams.push(start_date);
+            if (assetConflictResult.rows.length > 0) {
+                throw new Error('Conflito de horário: O recurso (sala/equipamento) já está agendado neste período.');
+            }
         }
 
-        if (whereClauses.length > 0) {
-            query += ' WHERE ' + whereClauses.join(' AND ');
-        }
-
-        query += ' ORDER BY a.start_time ASC';
-
-        const [rows] = await db.query(query, queryParams);
-
-        // Mapeia o resultado "plano" do SQL para a estrutura aninhada que o frontend precisa.
-        const appointments = rows.map(row => {
-            const { 
-                client_nested_id, client_name, client_phone,
-                service_nested_id, service_name, service_price, service_duration,
-                ...appointmentData 
-            } = row;
-
-            return {
-                ...appointmentData,
-                client: {
-                    id: client_nested_id,
-                    full_name: client_name,
-                    phone: client_phone
-                },
-                service: {
-                    id: service_nested_id,
-                    name: service_name,
-                    price: service_price,
-                    duration_minutes: service_duration
-                }
-            };
-        });
-
-        if (appointments.length === 0) {
-            return res.status(404).json({ message: 'Nenhum agendamento encontrado para os critérios fornecidos.' });
-        }
-
-        res.json(appointments);
-    } catch (error) {
-        console.error("Erro ao buscar agendamentos:", error);
-        res.status(500).json({ message: 'Erro interno do servidor ao processar sua solicitação.' });
-    }
-};
-
-// ... (Restante do arquivo: getAppointmentById, createAppointment, updateAppointment, deleteAppointment) ...
-
-const getAppointmentById = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const query = `
-            SELECT 
-                a.*,
-                c.id as client_nested_id, c.full_name as client_name, c.phone as client_phone,
-                s.id as service_nested_id, s.name as service_name, s.price as service_price, s.duration_minutes as service_duration
-            FROM appointments a
-            LEFT JOIN clients c ON a.client_id = c.id
-            LEFT JOIN services s ON a.service_id = s.id
-            WHERE a.id = ?
+        // 4. Se não houver conflitos, insere o novo agendamento
+        const insertQuery = `
+            INSERT INTO appointments (id, establishment_id, client_id, professional_id, service_id, asset_id, start_time, end_time, notes, status)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'Agendado')
+            RETURNING *;
         `;
-        const [rows] = await db.query(query, [id]);
+        const values = [newId, establishment_id, client_id, professional_id, service_id, asset_id, startTimeDate, endTimeDate, notes];
+        const newAppointment = await db.query(insertQuery, values);
 
-        if (rows.length === 0) {
-            return res.status(404).json({ message: 'Agendamento não encontrado' });
+        await db.query('COMMIT'); // Confirma a transação
+        res.status(201).json(newAppointment.rows[0]);
+    } catch (error) {
+        await db.query('ROLLBACK'); // Desfaz a transação em caso de erro
+        res.status(409).json({ message: error.message });
+    }
+};
+
+/**
+ * Lista todos os agendamentos, com possibilidade de filtros.
+ * Ex: /appointments?professional_id=uuid&date=2025-08-31
+ */
+const listAppointments = async (req, res, next) => {
+    const { professional_id, client_id, date } = req.query;
+    let query = 'SELECT * FROM appointments';
+    const conditions = [];
+    const values = [];
+    let counter = 1;
+
+    if (professional_id) {
+        conditions.push(`professional_id = $${counter++}`);
+        values.push(professional_id);
+    }
+    if (client_id) {
+        conditions.push(`client_id = $${counter++}`);
+        values.push(client_id);
+    }
+    if (date) {
+        conditions.push(`DATE(start_time) = $${counter++}`);
+        values.push(date);
+    }
+
+    if (conditions.length > 0) {
+        query += ' WHERE ' + conditions.join(' AND ');
+    }
+    query += ' ORDER BY start_time ASC';
+
+    try {
+        const result = await db.query(query, values);
+        res.status(200).json(result.rows);
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * Obtém um agendamento específico pelo ID.
+ */
+const getAppointmentById = async (req, res, next) => {
+    const { id } = req.params;
+    try {
+        const result = await db.query('SELECT * FROM appointments WHERE id = $1', [id]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Agendamento não encontrado.' });
         }
+        res.status(200).json(result.rows[0]);
+    } catch (error) {
+        next(error);
+    }
+};
 
-        const row = rows[0];
-        const { 
-            client_nested_id, client_name, client_phone,
-            service_nested_id, service_name, service_price, service_duration,
-            ...appointmentData 
-        } = row;
+/**
+ * Atualiza o status de um agendamento e executa ações secundárias.
+ */
+const updateAppointmentStatus = async (req, res, next) => {
+    const { id } = req.params;
+    const { status } = req.body;
+    
+    const client = await db.query('BEGIN'); // Usa transação para garantir consistência
 
-        const appointment = {
-            ...appointmentData,
-            client: { id: client_nested_id, full_name: client_name, phone: client_phone },
-            service: { id: service_nested_id, name: service_name, price: service_price, duration_minutes: service_duration }
-        };
+    try {
+        const appointmentResult = await db.query(
+            'SELECT a.*, s.price FROM appointments a JOIN services s ON a.service_id = s.id WHERE a.id = $1', [id]
+        );
+        if (appointmentResult.rows.length === 0) {
+            throw new Error('Agendamento não encontrado');
+        }
+        const appointment = appointmentResult.rows[0];
+
+        const updatedAppointment = await db.query(
+            'UPDATE appointments SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
+            [status, id]
+        );
+
+        if (status === 'Concluído') {
+            // Cria uma venda e atualiza o ganho do cliente
+            await db.query(
+                'INSERT INTO sales (id, establishment_id, client_id, appointment_id, total_amount, final_amount, status) VALUES ($1, $2, $3, $4, $5, $5, \'Pago\')',
+                [uuidv4(), appointment.establishment_id, appointment.client_id, id, appointment.price]
+            );
+            await db.query('UPDATE clients SET earned_income = earned_income + $1 WHERE id = $2', [appointment.price, appointment.client_id]);
+        } else if (status === 'No-Show') {
+            // Atualiza métricas de no-show e perda do cliente
+            await db.query('UPDATE clients SET no_shows = no_shows + 1, lost_income = lost_income + $1 WHERE id = $2', [appointment.price, appointment.client_id]);
+        } else if (status === 'Cancelado') {
+            await db.query('UPDATE clients SET cancellations = cancellations + 1 WHERE id = $1', [appointment.client_id]);
+        }
         
-        res.json(appointment);
+        await db.query('COMMIT');
+        res.status(200).json(updatedAppointment.rows[0]);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        await db.query('ROLLBACK');
+        next(error);
     }
 };
 
-const createAppointment = async (req, res) => {
+/**
+ * Deleta um agendamento.
+ */
+const deleteAppointment = async (req, res, next) => {
+    const { id } = req.params;
     try {
-        const { establishment_id, professional_id, client_id, service_id, start_time, notes } = req.body;
-
-        // Validação de dados essenciais
-        if (!establishment_id || !professional_id || !client_id || !service_id || !start_time) {
-            return res.status(400).json({ message: 'Todos os campos obrigatórios devem ser preenchidos.' });
-        }
-
-        // Busca a duração do serviço para calcular o end_time
-        const [services] = await db.query('SELECT duration_minutes FROM services WHERE id = ?', [service_id]);
-        if (services.length === 0) {
-            return res.status(404).json({ message: 'Serviço não encontrado.' });
-        }
-        const duration = services[0].duration_minutes;
-        const startTimeObj = new Date(start_time);
-        const endTimeObj = new Date(startTimeObj.getTime() + duration * 60000);
-
-        const newAppointment = {
-            establishment_id,
-            professional_id,
-            client_id,
-            service_id,
-            start_time: startTimeObj,
-            end_time: endTimeObj,
-            status: 'Agendado', // Status padrão
-            notes
-        };
-
-        const query = 'INSERT INTO appointments SET ?';
-        const [result] = await db.query(query, newAppointment);
-        res.status(201).json({ id: result.insertId, ...newAppointment });
-    } catch (error) {
-        console.error("Erro ao criar agendamento:", error);
-        res.status(500).json({ message: error.message });
-    }
-};
-
-const updateAppointment = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const [result] = await db.query('UPDATE appointments SET ? WHERE id = ?', [req.body, id]);
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ message: 'Agendamento não encontrado' });
-        }
-        res.json({ message: 'Agendamento atualizado com sucesso' });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-};
-
-const deleteAppointment = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const [result] = await db.query('DELETE FROM appointments WHERE id = ?', [id]);
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ message: 'Agendamento não encontrado' });
+        const result = await db.query('DELETE FROM appointments WHERE id = $1 RETURNING *', [id]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Agendamento não encontrado.' });
         }
         res.status(204).send();
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        next(error);
     }
 };
 
+
 module.exports = {
-    getAllAppointments,
-    getAppointmentById,
     createAppointment,
-    updateAppointment,
+    listAppointments,
+    getAppointmentById,
+    updateAppointmentStatus,
     deleteAppointment,
 };
