@@ -18,6 +18,7 @@ const cashFlowRoutes = require('./routes/cash_flowRoutes');
 const productsRoutes = require('./routes/productsRoutes');
 const productBatchesRoutes = require('./routes/product_batchesRoutes');
 const absencesRoutes = require('./routes/absencesRoutes');
+const mercadopago = require('./routes/mercadoPagoRoutes');
 
 
 const app = express();
@@ -64,6 +65,15 @@ app.use((err, req, res, next) => {
         message: 'Ocorreu um erro interno no servidor.',
         error: err.message,
     });
+});
+
+// Rotas do Mercado Pago
+app.use('/api/payments', mercadopago);
+
+// Middleware de erro (se houver)
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).send('Erro interno do servidor');
 });
 
 
