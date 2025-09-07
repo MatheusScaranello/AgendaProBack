@@ -1,7 +1,40 @@
-// src/controller/clients.js
-
 const db = require('../config/dbConfig');
 const { v4: uuidv4 } = require('uuid');
+
+/**
+ * @description Função auxiliar para enriquecer um objeto de cliente com métricas de vendas e agendamentos.
+ * @param {object} client - O objeto do cliente a ser enriquecido.
+ * @returns {Promise<object>} O cliente com dados adicionais (total_spent, avg_ticket, last_appointment).
+ */
+const enrichClientWithMetrics = async (client) => {
+    // Query para calcular o total gasto e o ticket médio a partir da tabela de vendas
+    const salesQuery = `
+        SELECT
+            COALESCE(SUM(final_amount), 0) AS total_spent,
+            COALESCE(AVG(final_amount), 0) AS avg_ticket
+        FROM sales
+        WHERE client_id = $1;
+    `;
+    const salesResult = await db.query(salesQuery, [client.id]);
+
+    // Query para encontrar a data do último agendamento
+    const lastAppointmentQuery = `
+        SELECT start_time 
+        FROM appointments 
+        WHERE client_id = $1 
+        ORDER BY start_time DESC 
+        LIMIT 1;
+    `;
+    const lastAppointmentResult = await db.query(lastAppointmentQuery, [client.id]);
+
+    // Combina os dados originais do cliente com as novas métricas calculadas
+    return {
+        ...client,
+        total_spent: parseFloat(salesResult.rows[0].total_spent) || 0,
+        avg_ticket: parseFloat(salesResult.rows[0].avg_ticket) || 0,
+        last_appointment: lastAppointmentResult.rows.length > 0 ? lastAppointmentResult.rows[0].start_time : null,
+    };
+};
 
 /**
  * Cria um novo cliente.
@@ -20,7 +53,6 @@ const createClient = async (req, res, next) => {
         const result = await db.query(query, values);
         res.status(201).json(result.rows[0]);
     } catch (error) {
-        // Trata erro de e-mail duplicado
         if (error.code === '23505' && error.constraint === 'clients_email_key') {
             return res.status(409).json({ message: 'O e-mail informado já está em uso.' });
         }
@@ -29,7 +61,7 @@ const createClient = async (req, res, next) => {
 };
 
 /**
- * Lista todos os clientes de um estabelecimento.
+ * Lista todos os clientes de um estabelecimento, com dados de vendas agregados.
  */
 const listClients = async (req, res, next) => {
     const { establishment_id } = req.query;
@@ -40,14 +72,18 @@ const listClients = async (req, res, next) => {
     try {
         const query = 'SELECT * FROM clients WHERE establishment_id = $1 ORDER BY full_name ASC';
         const result = await db.query(query, [establishment_id]);
-        res.status(200).json(result.rows);
+
+        // Enriquece cada cliente com as métricas de forma paralela para melhor performance
+        const enrichedClients = await Promise.all(result.rows.map(enrichClientWithMetrics));
+        
+        res.status(200).json(enrichedClients);
     } catch (error) {
         next(error);
     }
 };
 
 /**
- * Obtém um cliente específico pelo seu ID.
+ * Obtém um cliente específico pelo seu ID, enriquecido com dados de vendas.
  */
 const getClientById = async (req, res, next) => {
     const { id } = req.params;
@@ -56,7 +92,9 @@ const getClientById = async (req, res, next) => {
         if (result.rows.length === 0) {
             return res.status(404).json({ message: 'Cliente não encontrado.' });
         }
-        res.status(200).json(result.rows[0]);
+        
+        const enrichedClient = await enrichClientWithMetrics(result.rows[0]);
+        res.status(200).json(enrichedClient);
     } catch (error) {
         next(error);
     }
@@ -90,11 +128,23 @@ const updateClient = async (req, res, next) => {
 };
 
 /**
- * Deleta um cliente.
+ * Deleta um cliente, verificando se há dependências em agendamentos ou vendas.
  */
 const deleteClient = async (req, res, next) => {
     const { id } = req.params;
     try {
+        // Verifica se o cliente possui agendamentos
+        const appointments = await db.query('SELECT id FROM appointments WHERE client_id = $1 LIMIT 1', [id]);
+        if (appointments.rows.length > 0) {
+            return res.status(409).json({ message: 'Não é possível excluir o cliente, pois ele possui agendamentos associados.' });
+        }
+
+        // Verifica se o cliente possui vendas
+        const sales = await db.query('SELECT id FROM sales WHERE client_id = $1 LIMIT 1', [id]);
+        if (sales.rows.length > 0) {
+            return res.status(409).json({ message: 'Não é possível excluir o cliente, pois ele possui vendas associadas.' });
+        }
+
         const result = await db.query('DELETE FROM clients WHERE id = $1 RETURNING *', [id]);
         if (result.rows.length === 0) {
             return res.status(404).json({ message: 'Cliente não encontrado.' });
