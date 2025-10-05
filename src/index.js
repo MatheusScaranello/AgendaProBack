@@ -1,83 +1,84 @@
-// src/index.js
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
 
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
+// Carrega as variáveis de ambiente do arquivo .env
+dotenv.config();
 
-// --- Importação de Todas as Rotas ---
-const establishmentsRoutes = require('./routes/establishmentsRoutes');
-const professionalsRoutes = require('./routes/professionalsRoutes');
-const servicesRoutes = require('./routes/servicesRoutes');
-const clientsRoutes = require('./routes/clientsRoutes');
-const assetsRoutes = require('./routes/assetsRoutes');
-const appointmentsRoutes = require('./routes/appointmentsRoutes');
-const salesRoutes = require('./routes/salesRoutes');
-const saleItemsRoutes = require('./routes/sale_itemsRoutes');
-const commissionsRoutes = require('./routes/commissionsRoutes');
-const cashFlowRoutes = require('./routes/cash_flowRoutes');
-const productsRoutes = require('./routes/productsRoutes');
-const productBatchesRoutes = require('./routes/product_batchesRoutes');
-const absencesRoutes = require('./routes/absencesRoutes');
-const mercadopago = require('./routes/mercadoPagoRoutes');
-
+// Importação das rotas
+import establishmentsRoutes from './routes/establishmentsRoutes.js';
+import professionalsRoutes from './routes/professionalsRoutes.js';
+import clientsRoutes from './routes/clientsRoutes.js';
+import servicesRoutes from './routes/servicesRoutes.js';
+import productsRoutes from './routes/productsRoutes.js';
+import appointmentsRoutes from './routes/appointmentsRoutes.js';
+import salesRoutes from './routes/salesRoutes.js';
+import saleItemsRoutes from './routes/sale_itemsRoutes.js';
+import productBatchesRoutes from './routes/product_batchesRoutes.js';
+import commissionsRoutes from './routes/commissionsRoutes.js';
+import absencesRoutes from './routes/absencesRoutes.js';
+import cashFlowRoutes from './routes/cash_flowRoutes.js';
+import assetsRoutes from './routes/assetsRoutes.js';
+import mercadoPagoRoutes from './routes/mercadoPagoRoutes.js';
 
 const app = express();
-const PORT = process.env.PORT || 3333;
+const PORT = process.env.PORT || 3001;
 
 // --- Middlewares Essenciais ---
-app.use(cors()); // Permite requisições de outras origens (ex: seu frontend)
-app.use(express.json()); // Habilita o servidor a entender JSON no corpo das requisições
 
-// Middleware de Log (Opcional, mas útil para depuração)
-app.use((req, res, next) => {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-    next();
-});
+// 1. Configuração do CORS
+// Permite que o frontend (rodando em localhost ou no Vercel) acesse a API.
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://oiagendapro.vercel.app' // Adicione a URL de produção do seu frontend
+];
 
+app.use(cors({
+  origin: function (origin, callback) {
+    // Permite requisições sem 'origin' (ex: Postman, apps mobile) ou da lista de origens permitidas
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: true
+}));
 
-// --- Definição das Rotas da API ---
-app.get('/api', (req, res) => res.json({ message: 'API AgendaPro está no ar!' }));
-
-// Módulos Principais
-app.use('/api/establishments', establishmentsRoutes);
-app.use('/api/professionals', professionalsRoutes);
-app.use('/api/services', servicesRoutes);
-app.use('/api/clients', clientsRoutes);
-app.use('/api/products', productsRoutes);
-app.use('/api/appointments', appointmentsRoutes);
-app.use('/api/sales', salesRoutes);
-app.use('/api/assets', assetsRoutes);
-
-// Módulos Secundários e de Suporte
-app.use('/api/commissions', commissionsRoutes);
-app.use('/api/cash-flow', cashFlowRoutes);
-
-// Rotas para entidades aninhadas que podem ser acessadas diretamente pelo seu ID
-app.use('/api/absences', absencesRoutes);
-app.use('/api/product-batches', productBatchesRoutes);
-app.use('/api/sale-items', saleItemsRoutes);
+// 2. Middleware para processar JSON no corpo das requisições
+app.use(express.json());
 
 
-// --- Middleware de Tratamento de Erros (Deve ser o último) ---
-app.use((err, req, res, next) => {
-    console.error('Ocorreu um erro:', err.stack);
-    res.status(500).json({ 
-        message: 'Ocorreu um erro interno no servidor.',
-        error: err.message,
-    });
-});
+// --- Definição das Rotas ---
+// O prefixo '/api' já está definido dentro de cada arquivo de rota,
+// então não é necessário colocá-lo aqui novamente.
+app.use(establishmentsRoutes);
+app.use(professionalsRoutes);
+app.use(clientsRoutes);
+app.use(servicesRoutes);
+app.use(productsRoutes);
+app.use(appointmentsRoutes);
+app.use(salesRoutes);
+app.use(saleItemsRoutes);
+app.use(productBatchesRoutes);
+app.use(commissionsRoutes);
+app.use(absencesRoutes);
+app.use(cashFlowRoutes);
+app.use(assetsRoutes);
+app.use(mercadoPagoRoutes);
 
-// Rotas do Mercado Pago
-app.use('/api/payments', mercadopago);
 
-// Middleware de erro (se houver)
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).send('Erro interno do servidor');
+// --- Rota Raiz para Verificação de Status ---
+app.get('/', (req, res) => {
+  res.status(200).send('API do AgendaPro está funcionando!');
 });
 
 
 // --- Inicialização do Servidor ---
 app.listen(PORT, () => {
-    console.log(`🚀 Servidor supremo rodando na porta ${PORT}`);
+  console.log(`Servidor rodando na porta ${PORT}`);
 });
+
+// Exporta o app para ser usado em outros contextos (ex: testes ou Vercel)
+export default app;
