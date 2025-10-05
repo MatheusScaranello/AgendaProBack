@@ -136,14 +136,12 @@ const updateStatus = async (req, res, next) => {
         status
     } = req.body;
 
-    // --- CÓDIGO CORRIGIDO AQUI ---
     const allowedStatus = ['Agendado', 'Concluído', 'Cancelado', 'No-Show'];
     if (!status || !allowedStatus.includes(status)) {
         return res.status(400).json({
             message: `Status inválido. Use um dos seguintes: ${allowedStatus.join(', ')}`
         });
     }
-    // --- FIM DA CORREÇÃO ---
 
     try {
         await db.query('BEGIN');
@@ -168,12 +166,44 @@ const updateStatus = async (req, res, next) => {
     }
 };
 
+// POST /appointments/:id/reschedule
+const reschedule = async (req, res, next) => {
+    const { id } = req.params;
+    const { start_time, end_time } = req.body;
+
+    if (!start_time || !end_time) {
+        return res.status(400).json({ message: 'As novas datas de início e fim são obrigatórias.' });
+    }
+
+    try {
+        const { rows, rowCount } = await db.query(
+            'UPDATE appointments SET start_time = $1, end_time = $2, updated_at = NOW() WHERE id = $3 RETURNING *',
+            [start_time, end_time, id]
+        );
+
+        if (rowCount === 0) {
+            return res.status(404).json({ message: 'Agendamento não encontrado para reagendar.' });
+        }
+
+        res.json(rows[0]);
+    } catch (err) {
+        next(err);
+    }
+};
+
+// Renomeando 'create' para 'createAppointment' para consistência
+const createAppointment = create;
+const deleteAppointment = remove;
+const listAppointments = getAll;
+const getAppointmentById = getById;
+
 
 module.exports = {
-    getAll,
-    getById,
-    create,
-    update,
-    remove,
+    listAppointments,
+    getAppointmentById,
+    createAppointment,
+    update, // Manter 'update' se for usado em outro lugar, ou renomear.
+    deleteAppointment,
     updateStatus,
+    reschedule,
 };
