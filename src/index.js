@@ -3,6 +3,7 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
+const AppError = require('./utils/AppError'); // Importa a classe de erro
 
 // Importação das rotas
 const establishmentsRoutes = require('./routes/establishmentsRoutes.js');
@@ -24,15 +25,11 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // --- Middlewares Essenciais ---
-
-// 1. Configuração do CORS para permitir requisições de qualquer origem
 app.use(cors({
-    origin: '*', // Em produção, considere restringir para o seu domínio do frontend
+    origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     credentials: true
 }));
-
-// 2. Middleware para processar JSON no corpo das requisições
 app.use(express.json());
 
 
@@ -59,29 +56,31 @@ app.get('/', (req, res) => {
 });
 
 
-// --- Middleware de Tratamento de Erros ---
-// Este deve ser o último middleware a ser adicionado. Ele captura todos os erros
-// que ocorrem nas rotas e envia uma resposta padronizada.
+// --- Middleware de Tratamento de Erros ATUALIZADO ---
 app.use((err, req, res, next) => {
-    // Log do erro no console do servidor (visível nos logs do Vercel)
-    console.error('Ocorreu um erro não tratado:', err);
+    // Se for um erro operacional conhecido, envia uma resposta amigável
+    if (err instanceof AppError) {
+        return res.status(err.statusCode).json({
+            status: err.status,
+            message: err.message,
+        });
+    }
 
-    // Responde ao cliente com uma mensagem de erro genérica
+    // Para erros não esperados (bugs), loga o erro e envia uma resposta genérica
+    console.error('ERRO 💥', err);
+
     res.status(500).json({
+        status: 'error',
         message: 'Ocorreu um erro interno no servidor.',
-        // Opcional: em ambiente de desenvolvimento, envie o stack do erro para facilitar a depuração
-        // error: process.env.NODE_ENV === 'development' ? err.stack : undefined
     });
 });
 
 
 // --- Inicialização do Servidor (apenas para desenvolvimento local) ---
-// A Vercel gerencia a porta automaticamente em produção.
 if (process.env.NODE_ENV !== 'production') {
     app.listen(PORT, () => {
         console.log(`Servidor rodando na porta ${PORT}`);
     });
 }
 
-// Exporta o app para a Vercel poder utilizá-lo como uma função serverless
 module.exports = app;
