@@ -1,15 +1,15 @@
 // src/config/dbConfig.js
 
-const { Pool } = require('@neondatabase/serverless');
+const { Pool } = require('pg');
 require('dotenv').config();
 
-// Validação para garantir que a variável de ambiente está definida
-if (!process.env.DATABASE_URL) {
-  throw new Error("A variável de ambiente 'DATABASE_URL' não foi definida.");
-}
-
+// O cliente 'pg' vai ler a variável de ambiente DATABASE_URL automaticamente
+// e entender todas as informações de conexão a partir dela.
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
 module.exports = {
