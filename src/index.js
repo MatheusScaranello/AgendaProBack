@@ -1,65 +1,84 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const app = express();
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
 
-// 1. Configuração do CORS (MAIS PERMISSIVA PARA DEBUG)
-// ATENÇÃO: Esta configuração é para fins de teste e não é segura para produção.
+// Carrega as variáveis de ambiente do arquivo .env
+dotenv.config();
+
+// Importação das rotas
+import establishmentsRoutes from './routes/establishmentsRoutes.js';
+import professionalsRoutes from './routes/professionalsRoutes.js';
+import clientsRoutes from './routes/clientsRoutes.js';
+import servicesRoutes from './routes/servicesRoutes.js';
+import productsRoutes from './routes/productsRoutes.js';
+import appointmentsRoutes from './routes/appointmentsRoutes.js';
+import salesRoutes from './routes/salesRoutes.js';
+import saleItemsRoutes from './routes/sale_itemsRoutes.js';
+import productBatchesRoutes from './routes/product_batchesRoutes.js';
+import commissionsRoutes from './routes/commissionsRoutes.js';
+import absencesRoutes from './routes/absencesRoutes.js';
+import cashFlowRoutes from './routes/cash_flowRoutes.js';
+import assetsRoutes from './routes/assetsRoutes.js';
+import mercadoPagoRoutes from './routes/mercadoPagoRoutes.js';
+
+const app = express();
+const PORT = process.env.PORT || 3001;
+
+// --- Middlewares Essenciais ---
+
+// 1. Configuração do CORS
+// Permite que o frontend (rodando em localhost ou no Vercel) acesse a API.
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://oiagendapro.vercel.app' // Adicione a URL de produção do seu frontend
+];
+
 app.use(cors({
-    origin: (origin, callback) => {
-        // Permite todas as origens para teste
-        callback(null, true);
-    },
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    credentials: true
+  origin: function (origin, callback) {
+    // Permite requisições sem 'origin' (ex: Postman, apps mobile) ou da lista de origens permitidas
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: true
 }));
 
-// 2. Middlewares
+// 2. Middleware para processar JSON no corpo das requisições
 app.use(express.json());
 
-// 3. Rotas
-const establishmentsRoutes = require('./routes/establishmentsRoutes');
-const professionalsRoutes = require('./routes/professionalsRoutes');
-const clientsRoutes = require('./routes/clientsRoutes');
-const servicesRoutes = require('./routes/servicesRoutes');
-const appointmentsRoutes = require('./routes/appointmentsRoutes');
-const productsRoutes = require('./routes/productsRoutes');
-const salesRoutes = require('./routes/salesRoutes');
-const saleItemsRoutes = require('./routes/sale_itemsRoutes');
-const productBatchesRoutes = require('./routes/product_batchesRoutes');
-const assetsRoutes = require('./routes/assetsRoutes');
-const absencesRoutes = require('./routes/absencesRoutes');
-const cashFlowRoutes = require('./routes/cash_flowRoutes');
-const commissionsRoutes = require('./routes/commissionsRoutes');
-const mercadoPagoRoutes = require('./routes/mercadoPagoRoutes');
+
+// --- Definição das Rotas ---
+// O prefixo '/api' já está definido dentro de cada arquivo de rota,
+// então não é necessário colocá-lo aqui novamente.
+app.use(establishmentsRoutes);
+app.use(professionalsRoutes);
+app.use(clientsRoutes);
+app.use(servicesRoutes);
+app.use(productsRoutes);
+app.use(appointmentsRoutes);
+app.use(salesRoutes);
+app.use(saleItemsRoutes);
+app.use(productBatchesRoutes);
+app.use(commissionsRoutes);
+app.use(absencesRoutes);
+app.use(cashFlowRoutes);
+app.use(assetsRoutes);
+app.use(mercadoPagoRoutes);
 
 
-app.use('/api', establishmentsRoutes);
-app.use('/api', professionalsRoutes);
-app.use('/api', clientsRoutes);
-app.use('/api', servicesRoutes);
-app.use('/api', appointmentsRoutes);
-app.use('/api', productsRoutes);
-app.use('/api', salesRoutes);
-app.use('/api', saleItemsRoutes);
-app.use('/api', productBatchesRoutes);
-app.use('/api', assetsRoutes);
-app.use('/api', absencesRoutes);
-app.use('/api', cashFlowRoutes);
-app.use('/api', commissionsRoutes);
-app.use('/api', mercadoPagoRoutes);
-
-
-// 4. Tratamento de Erros (opcional, mas recomendado)
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).send('Algo deu errado!');
+// --- Rota Raiz para Verificação de Status ---
+app.get('/', (req, res) => {
+  res.status(200).send('API do AgendaPro está funcionando!');
 });
 
-// 5. Iniciar o Servidor
-const PORT = process.env.PORT || 3001;
+
+// --- Inicialização do Servidor ---
 app.listen(PORT, () => {
-    console.log(`Servidor rodando na porta ${PORT}`);
+  console.log(`Servidor rodando na porta ${PORT}`);
 });
 
-module.exports = app;
+// Exporta o app para ser usado em outros contextos (ex: testes ou Vercel)
+export default app;
