@@ -27,22 +27,20 @@ const PORT = process.env.PORT || 3001;
 // --- Middlewares Essenciais ---
 
 // 1. Configuração do CORS
-// Permite que o frontend (rodando em localhost ou no Vercel) acesse a API.
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://oiagendapro.vercel.app' // Adicione a URL de produção do seu frontend
+  'https://oiagendapro.vercel.app' // URL de produção do seu frontend
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Permite requisições sem 'origin' (ex: Postman, apps mobile) ou da lista de origens permitidas
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
     }
   },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'], // Adicionado PATCH
   credentials: true
 }));
 
@@ -50,23 +48,22 @@ app.use(cors({
 app.use(express.json());
 
 
-// --- Definição das Rotas ---
-// O prefixo '/api' já está definido dentro de cada arquivo de rota,
-// então não é necessário colocá-lo aqui novamente.
-app.use(establishmentsRoutes);
-app.use(professionalsRoutes);
-app.use(clientsRoutes);
-app.use(servicesRoutes);
-app.use(productsRoutes);
-app.use(appointmentsRoutes);
-app.use(salesRoutes);
-app.use(saleItemsRoutes);
-app.use(productBatchesRoutes);
-app.use(commissionsRoutes);
-app.use(absencesRoutes);
-app.use(cashFlowRoutes);
-app.use(assetsRoutes);
-app.use(mercadoPagoRoutes);
+// --- Definição das Rotas com Prefixos ---
+// CORREÇÃO: Adicionados prefixos para corresponder às chamadas do frontend.
+app.use('/establishments', establishmentsRoutes);
+app.use('/professionals', professionalsRoutes);
+app.use('/clients', clientsRoutes);
+app.use('/services', servicesRoutes);
+app.use('/products', productsRoutes);
+app.use('/appointments', appointmentsRoutes);
+app.use('/sales', salesRoutes);
+app.use('/sale-items', saleItemsRoutes);
+app.use('/product-batches', productBatchesRoutes);
+app.use('/commissions', commissionsRoutes);
+app.use('/absences', absencesRoutes);
+app.use('/cash-flow', cashFlowRoutes);
+app.use('/assets', assetsRoutes);
+app.use('/payments', mercadoPagoRoutes); // Usando um prefixo genérico para pagamentos
 
 
 // --- Rota Raiz para Verificação de Status ---
