@@ -118,7 +118,6 @@ const getAppointmentById = async (req, res, next) => {
         id
     } = req.params;
     try {
-        // Query para buscar o agendamento e fazer JOIN com as tabelas de cliente e serviço
         const query = `
             SELECT 
                 a.*, 
@@ -141,7 +140,6 @@ const getAppointmentById = async (req, res, next) => {
         next(error);
     }
 };
-
 
 const updateStatus = async (req, res, next) => {
     const {
@@ -172,26 +170,14 @@ const updateStatus = async (req, res, next) => {
                 message: 'Agendamento não encontrado.'
             });
         }
-
-        // Lógica de negócio adicional (ex: métricas do cliente)
-        if (status === 'completed' || status === 'canceled') {
-            const appointment = result.rows[0];
-            const service = await db.query('SELECT price FROM services WHERE id = $1', [appointment.service_id]);
-            const price = service.rows[0].price;
-
-            if (status === 'completed') {
-                await db.query('UPDATE clients SET earned_income = earned_income + $1 WHERE id = $2', [price, appointment.client_id]);
-            } else if (status === 'canceled') {
-                await db.query('UPDATE clients SET cancellations = cancellations + 1, lost_income = lost_income + $1 WHERE id = $2', [price, appointment.client_id]);
-            }
-        }
+        
+        console.log(`[LOG] Status do agendamento ${id} atualizado para ${status}.`);
 
         await db.query('COMMIT');
-        console.log(`Status do agendamento ${id} atualizado para ${status}`);
         res.status(200).json(result.rows[0]);
     } catch (error) {
         await db.query('ROLLBACK');
-        console.error(`Erro ao atualizar status do agendamento ${id}:`, error);
+        console.error(`[ERROR] Erro ao atualizar status do agendamento ${id}:`, error);
         next(error);
     }
 };
@@ -246,7 +232,7 @@ const reschedule = async (req, res, next) => {
         );
 
         await db.query('COMMIT');
-        console.log(`Agendamento ${id} reagendado para ${newStartTime.toISOString()}`);
+        console.log(`[LOG] Agendamento ${id} reagendado para ${newStartTime.toISOString()}`);
         res.status(200).json(updatedAppointment.rows[0]);
     } catch (error) {
         await db.query('ROLLBACK');
@@ -278,7 +264,7 @@ module.exports = {
     createAppointment,
     listAppointments,
     getAppointmentById,
-    updateStatus, // <- Alterado de updateAppointmentStatus
-    reschedule, // <- Novo
+    updateStatus,
+    reschedule,
     deleteAppointment,
 };
