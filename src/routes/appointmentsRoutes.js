@@ -7,8 +7,8 @@ const {
     createAppointment,
     listAppointments,
     getAppointmentById,
-    updateStatus, // <- Nome da função atualizada
-    reschedule, // <- Nova função
+    updateStatus,
+    reschedule,
     deleteAppointment,
 } = require('../controller/appointments');
 
@@ -19,7 +19,7 @@ router.route('/')
     .get(listAppointments)
     .post(createAppointment);
 
-// Rota para buscar, e deletar um agendamento específico
+// Rota para buscar e deletar um agendamento específico
 router.route('/:id')
     .get(getAppointmentById)
     .delete(deleteAppointment);
