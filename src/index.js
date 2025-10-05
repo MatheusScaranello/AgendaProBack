@@ -1,39 +1,46 @@
-// Carrega as variáveis de ambiente do arquivo .env
 require('dotenv').config();
-
 const express = require('express');
 const cors = require('cors');
-const AppError = require('./utils/AppError'); // Importa a classe de erro
+const AppError = require('./utils/AppError');
 
-// Importação das rotas
-const establishmentsRoutes = require('./routes/establishmentsRoutes.js');
-const professionalsRoutes = require('./routes/professionalsRoutes.js');
-const clientsRoutes = require('./routes/clientsRoutes.js');
-const servicesRoutes = require('./routes/servicesRoutes.js');
-const productsRoutes = require('./routes/productsRoutes.js');
-const appointmentsRoutes = require('./routes/appointmentsRoutes.js');
-const salesRoutes = require('./routes/salesRoutes.js');
-const saleItemsRoutes = require('./routes/sale_itemsRoutes.js');
-const productBatchesRoutes = require('./routes/product_batchesRoutes.js');
-const commissionsRoutes = require('./routes/commissionsRoutes.js');
-const absencesRoutes = require('./routes/absencesRoutes.js');
-const cashFlowRoutes = require('./routes/cash_flowRoutes.js');
-const assetsRoutes = require('./routes/assetsRoutes.js');
-const mercadoPagoRoutes = require('./routes/mercadoPagoRoutes.js');
+// Importação de todas as suas rotas
+const establishmentsRoutes = require('./routes/establishmentsRoutes');
+const professionalsRoutes = require('./routes/professionalsRoutes');
+const clientsRoutes = require('./routes/clientsRoutes');
+const servicesRoutes = require('./routes/servicesRoutes');
+const productsRoutes = require('./routes/productsRoutes');
+const appointmentsRoutes = require('./routes/appointmentsRoutes');
+const salesRoutes = require('./routes/salesRoutes');
+const saleItemsRoutes = require('./routes/sale_itemsRoutes');
+const commissionsRoutes = require('./routes/commissionsRoutes');
+const cashFlowRoutes = require('./routes/cash_flowRoutes');
+const assetsRoutes = require('./routes/assetsRoutes');
+const absencesRoutes = require('./routes/absencesRoutes');
+const productBatchesRoutes = require('./routes/product_batchesRoutes');
+const mercadoPagoRoutes = require('./routes/mercadoPagoRoutes');
+
 
 const app = express();
-const PORT = process.env.PORT || 3001;
 
-// --- Middlewares Essenciais ---
-app.use(cors({
-    origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    credentials: true
-}));
+// --- Middlewares ---
+
+// 1. Configuração de CORS (Cross-Origin Resource Sharing)
+// Permite que seu frontend, em uma URL diferente, faça requisições para este backend.
+const corsOptions = {
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000', // Use a URL do seu frontend da Vercel aqui
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+  credentials: true,
+  optionsSuccessStatus: 204
+};
+app.use(cors(corsOptions));
+
+// 2. Middleware para processar JSON
+// Permite que o Express entenda requisições com corpo no formato JSON.
 app.use(express.json());
 
 
-// --- Definição das Rotas com Prefixos ---
+// --- Rotas da API ---
+// Todas as rotas são prefixadas com /api para uma melhor organização.
 app.use('/api/establishments', establishmentsRoutes);
 app.use('/api/professionals', professionalsRoutes);
 app.use('/api/clients', clientsRoutes);
@@ -42,45 +49,38 @@ app.use('/api/products', productsRoutes);
 app.use('/api/appointments', appointmentsRoutes);
 app.use('/api/sales', salesRoutes);
 app.use('/api/sale-items', saleItemsRoutes);
-app.use('/api/product-batches', productBatchesRoutes);
 app.use('/api/commissions', commissionsRoutes);
-app.use('/api/absences', absencesRoutes);
 app.use('/api/cash-flow', cashFlowRoutes);
 app.use('/api/assets', assetsRoutes);
-app.use('/api/payments', mercadoPagoRoutes);
+app.use('/api/absences', absencesRoutes);
+app.use('/api/product-batches', productBatchesRoutes);
+app.use('/api/mercado-pago', mercadoPagoRoutes);
 
 
-// --- Rota Raiz para Verificação de Status ---
-app.get('/', (req, res) => {
-  res.status(200).send('API do AgendaPro está funcionando!');
+// --- Tratamento de Erros Centralizado ---
+// Este middleware captura todos os erros que ocorrem nas rotas.
+app.use((err, request, response, next) => {
+  // Se o erro for uma instância de AppError, é um erro conhecido da aplicação.
+  if (err instanceof AppError) {
+    return response.status(err.statusCode).json({
+      status: 'error',
+      message: err.message
+    });
+  }
+
+  // Para erros não esperados (erros de programação, falhas de pacotes, etc.).
+  console.error(err); // Loga o erro no console do servidor para depuração.
+
+  return response.status(500).json({
+    status: 'error',
+    message: 'Erro interno do servidor'
+  });
 });
 
 
-// --- Middleware de Tratamento de Erros ATUALIZADO ---
-app.use((err, req, res, next) => {
-    // Se for um erro operacional conhecido, envia uma resposta amigável
-    if (err instanceof AppError) {
-        return res.status(err.statusCode).json({
-            status: err.status,
-            message: err.message,
-        });
-    }
+// --- Inicialização do Servidor ---
+const PORT = process.env.PORT || 3333;
+app.listen(PORT, () => console.log(`O servidor está rodando na porta ${PORT}`));
 
-    // Para erros não esperados (bugs), loga o erro e envia uma resposta genérica
-    console.error('ERRO 💥', err);
-
-    res.status(500).json({
-        status: 'error',
-        message: 'Ocorreu um erro interno no servidor.',
-    });
-});
-
-
-// --- Inicialização do Servidor (apenas para desenvolvimento local) ---
-if (process.env.NODE_ENV !== 'production') {
-    app.listen(PORT, () => {
-        console.log(`Servidor rodando na porta ${PORT}`);
-    });
-}
-
+// Exporta o app para ser utilizado pela Vercel
 module.exports = app;
