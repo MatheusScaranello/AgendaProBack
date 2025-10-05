@@ -3,20 +3,12 @@ const express = require('express');
 const cors = require('cors');
 const app = express();
 
-// 1. Configuração do CORS
-const allowedOrigins = [
-    'http://localhost:3000',
-    'https://oiagendapro.vercel.app',
-    'https://agenda-pro-back.vercel.app' // URL do seu frontend em produção
-];
-
+// 1. Configuração do CORS (MAIS PERMISSIVA PARA DEBUG)
+// ATENÇÃO: Esta configuração é para fins de teste e não é segura para produção.
 app.use(cors({
-    origin: function (origin, callback) {
-        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
-        }
+    origin: (origin, callback) => {
+        // Permite todas as origens para teste
+        callback(null, true);
     },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     credentials: true
