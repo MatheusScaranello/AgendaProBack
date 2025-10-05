@@ -25,20 +25,18 @@ const PORT = process.env.PORT || 3001;
 
 // --- Middlewares Essenciais ---
 
-// 1. Configuração do CORS (permitindo todas as origens para garantir que funcione)
+// 1. Configuração do CORS para permitir requisições de qualquer origem
 app.use(cors({
-    origin: '*', // Permite qualquer origem
+    origin: '*', // Em produção, considere restringir para o seu domínio do frontend
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     credentials: true
 }));
-
 
 // 2. Middleware para processar JSON no corpo das requisições
 app.use(express.json());
 
 
 // --- Definição das Rotas com Prefixos ---
-// Usando um prefixo "/api" para todas as rotas para corresponder às chamadas do frontend
 app.use('/api/establishments', establishmentsRoutes);
 app.use('/api/professionals', professionalsRoutes);
 app.use('/api/clients', clientsRoutes);
@@ -61,13 +59,29 @@ app.get('/', (req, res) => {
 });
 
 
-// --- Inicialização do Servidor ---
-// A Vercel gerencia a porta, então o app.listen é mais para desenvolvimento local.
+// --- Middleware de Tratamento de Erros ---
+// Este deve ser o último middleware a ser adicionado. Ele captura todos os erros
+// que ocorrem nas rotas e envia uma resposta padronizada.
+app.use((err, req, res, next) => {
+    // Log do erro no console do servidor (visível nos logs do Vercel)
+    console.error('Ocorreu um erro não tratado:', err);
+
+    // Responde ao cliente com uma mensagem de erro genérica
+    res.status(500).json({
+        message: 'Ocorreu um erro interno no servidor.',
+        // Opcional: em ambiente de desenvolvimento, envie o stack do erro para facilitar a depuração
+        // error: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
+});
+
+
+// --- Inicialização do Servidor (apenas para desenvolvimento local) ---
+// A Vercel gerencia a porta automaticamente em produção.
 if (process.env.NODE_ENV !== 'production') {
     app.listen(PORT, () => {
         console.log(`Servidor rodando na porta ${PORT}`);
     });
 }
 
-// Exporta o app para a Vercel
+// Exporta o app para a Vercel poder utilizá-lo como uma função serverless
 module.exports = app;
