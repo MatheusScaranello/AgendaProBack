@@ -1,24 +1,10 @@
--- Tabela para estabelecimentos/clínicas.
-CREATE TABLE establishments (
-    id UUID PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    trade_name VARCHAR(255),
-    phone VARCHAR(20),
-    email VARCHAR(255) UNIQUE NOT NULL,
-    address JSONB,
-    plan VARCHAR(50) NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
 -- Tabela de profissionais/colaboradores.
 CREATE TABLE professionals (
     id UUID PRIMARY KEY,
-    establishment_id UUID NOT NULL REFERENCES establishments(id) ON DELETE CASCADE,
     full_name VARCHAR(255) NOT NULL,
     phone VARCHAR(20),
-    email VARCHAR(255) UNIQUE NOT NULL,
-    professional_role VARCHAR(100),
+    email VARCHAR(255) UNIQUE,
+    role VARCHAR(100),
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -27,29 +13,11 @@ CREATE TABLE professionals (
 -- Tabela de serviços oferecidos.
 CREATE TABLE services (
     id UUID PRIMARY KEY,
-    establishment_id UUID NOT NULL REFERENCES establishments(id) ON DELETE CASCADE,
+    professional_id UUID NOT NULL REFERENCES professionals(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
     description TEXT,
     duration_minutes INT NOT NULL,
     price NUMERIC(10, 2) NOT NULL,
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Tabela de associação entre profissionais e serviços.
-CREATE TABLE professional_services (
-    professional_id UUID NOT NULL REFERENCES professionals(id) ON DELETE CASCADE,
-    service_id UUID NOT NULL REFERENCES services(id) ON DELETE CASCADE,
-    PRIMARY KEY (professional_id, service_id)
-);
-
--- Tabela para salas e equipamentos de uso agendado.
-CREATE TABLE assets (
-    id UUID PRIMARY KEY,
-    establishment_id UUID NOT NULL REFERENCES establishments(id) ON DELETE CASCADE,
-    name VARCHAR(255) NOT NULL,
-    type VARCHAR(50) NOT NULL,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -112,42 +80,6 @@ CREATE TABLE sales (
     transaction_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabela de produtos.
-CREATE TABLE products (
-    id UUID PRIMARY KEY,
-    establishment_id UUID NOT NULL REFERENCES establishments(id) ON DELETE CASCADE,
-    name VARCHAR(255) NOT NULL,
-    sku VARCHAR(100) UNIQUE,
-    description TEXT,
-    cost_price NUMERIC(10, 2),
-    sale_price NUMERIC(10, 2) NOT NULL,
-    stock_level INT NOT NULL DEFAULT 0,
-    min_stock_level INT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Tabela de itens da venda (serviços e produtos).
-CREATE TABLE sale_items (
-    id UUID PRIMARY KEY,
-    sale_id UUID NOT NULL REFERENCES sales(id) ON DELETE CASCADE,
-    service_id UUID REFERENCES services(id),
-    product_id UUID REFERENCES products(id),
-    quantity INT NOT NULL,
-    unit_price NUMERIC(10, 2) NOT NULL,
-    total_price NUMERIC(10, 2) NOT NULL
-);
-
--- Tabela para comissões dos profissionais.
-CREATE TABLE commissions (
-    id UUID PRIMARY KEY,
-    sale_item_id UUID NOT NULL REFERENCES sale_items(id),
-    professional_id UUID NOT NULL REFERENCES professionals(id),
-    commission_percentage NUMERIC(5, 2),
-    commission_value NUMERIC(10, 2) NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
 -- Tabela para controle de caixa.
 CREATE TABLE cash_flow (
     id UUID PRIMARY KEY,
@@ -156,14 +88,4 @@ CREATE TABLE cash_flow (
     description TEXT NOT NULL,
     amount NUMERIC(10, 2) NOT NULL,
     transaction_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Tabela para controle de lotes e validades.
-CREATE TABLE product_batches (
-    id UUID PRIMARY KEY,
-    product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-    batch_number VARCHAR(100),
-    expiration_date DATE,
-    quantity INT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
