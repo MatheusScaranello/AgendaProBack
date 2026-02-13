@@ -3,88 +3,61 @@
 const db = require('../config/dbConfig');
 const { v4: uuidv4 } = require('uuid');
 
+// CREATE TABLE services (
+//     id UUID PRIMARY KEY,
+//     professional_id UUID NOT NULL REFERENCES professionals(id) ON DELETE CASCADE,
+//     name VARCHAR(255) NOT NULL,
+//     description TEXT,
+//     duration_minutes INT NOT NULL,
+//     price NUMERIC(10, 2) NOT NULL,
+//     is_active BOOLEAN DEFAULT TRUE,
+//     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+//     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+// );
+
 // Criar um novo serviço
-const createService = async (req, res, next) => {
-    const { professional_id, name, description, duration_minutes, price } = req.body;
-    const newId = uuidv4();
-    try {
-        const result = await db.query(
-            'INSERT INTO services (id, professional_id, name, description, duration_minutes, price) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-            [newId, professional_id, name, description, duration_minutes, price]
-        );
-        res.status(201).json(result.rows[0]);
-    } catch (err) {
-        next(err);
-    }
-};
+async function createService(serviceData) {
+    const { professional_id, name, description, duration_minutes, price } = serviceData;
+    const id = uuidv4();
+    const query = `INSERT INTO services (id, professional_id, name, description, duration_minutes, price) 
+                   VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`;
+    const values = [id, professional_id, name, description, duration_minutes, price];
+    const { rows } = await db.query(query, values);
+    return rows[0];
+}
 
 // Listar todos os serviços
-const listServices = async (req, res, next) => {
-    try {
-        const { rows } = await db.query('SELECT * FROM services ORDER BY name ASC');
-        res.json(rows);
-    } catch (err) {
-        next(err);
-    }
-};
+async function listServices() {
+    const query = `SELECT * FROM services WHERE is_active = TRUE`;
+    const { rows } = await db.query(query);
+    return rows;
+}
 
-// Listar serviços por profissional
-const listServicesByProfessional = async (req, res, next) => {
-    const { professional_id } = req.params;
-    try {
-        const query = 'SELECT * FROM services WHERE professional_id = $1 ORDER BY name ASC';
-        const result = await db.query(query, [professional_id]);
-        res.status(200).json(result.rows);
-    } catch (error) {
-        next(error);
-    }
-};
-
-// Obter um serviço pelo ID
-const getServiceById = async (req, res, next) => {
-    const { id } = req.params;
-    try {
-        const { rows } = await db.query('SELECT * FROM services WHERE id = $1', [id]);
-        if (rows.length === 0) {
-            return res.status(404).json({ message: 'Serviço não encontrado' });
-        }
-        res.json(rows[0]);
-    } catch (err) {
-        next(err);
-    }
-};
+// Obter um serviço por ID
+async function getServiceById(id) {
+    const query = `SELECT * FROM services WHERE id = $1 AND is_active = TRUE`;
+    const { rows } = await db.query(query, [id]);
+    return rows[0];
+}
 
 // Atualizar um serviço
-const updateService = async (req, res, next) => {
-    const { id } = req.params;
-    const { name, description, duration_minutes, price, is_active } = req.body;
-    try {
-        const result = await db.query(
-            'UPDATE services SET name = $1, description = $2, duration_minutes = $3, price = $4, is_active = $5, updated_at = CURRENT_TIMESTAMP WHERE id = $6 RETURNING *',
-            [name, description, duration_minutes, price, is_active, id]
-        );
-        if (result.rows.length === 0) {
-            return res.status(404).json({ message: 'Serviço não encontrado' });
-        }
-        res.json(result.rows[0]);
-    } catch (err) {
-        next(err);
-    }
-};
+async function updateService(id, serviceData) {
+    const { professional_id, name, description, duration_minutes, price } = serviceData;
+    const query = `UPDATE services 
+                   SET professional_id = $1, name = $2, description = $3, duration_minutes = $4, price = $5, updated_at = CURRENT_TIMESTAMP 
+                   WHERE id = $6 AND is_active = TRUE RETURNING *`;
+    const values = [professional_id, name, description, duration_minutes, price, id];
+    const { rows } = await db.query(query, values);
+    return rows[0];
+}
 
-// Deletar um serviço
-const deleteService = async (req, res, next) => {
-    const { id } = req.params;
-    try {
-        const result = await db.query('DELETE FROM services WHERE id = $1 RETURNING *', [id]);
-        if (result.rows.length === 0) {
-            return res.status(404).json({ message: 'Serviço não encontrado' });
-        }
-        res.json({ message: 'Serviço deletado com sucesso' });
-    } catch (err) {
-        next(err);
-    }
-};
+// Excluir um serviço (soft delete)
+async function deleteService(id) {
+    const query = `UPDATE services SET is_active = FALSE, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *`;
+    const { rows } = await db.query(query, [id]);
+    return rows[0];
+}
+
 
 module.exports = {
     createService,
