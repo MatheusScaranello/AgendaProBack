@@ -24,7 +24,6 @@ const servicesRoutes = require('./routes/servicesRoutes');
 const appointmentsRoutes = require('./routes/appointmentsRoutes');
 const salesRoutes = require('./routes/salesRoutes');
 const absencesRoutes = require('./routes/absencesRoutes');
-const cashFlowRoutes = require('./routes/cash_flowRoutes');
 
 
 app.use('/api', professionalsRoutes);
@@ -33,7 +32,6 @@ app.use('/api', servicesRoutes);
 app.use('/api', appointmentsRoutes);
 app.use('/api', salesRoutes);
 app.use('/api', absencesRoutes);
-app.use('/api', cashFlowRoutes);
 
 
 // 4. Tratamento de Erros (opcional, mas recomendado)

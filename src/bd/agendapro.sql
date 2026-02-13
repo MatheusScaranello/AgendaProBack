@@ -69,23 +69,11 @@ CREATE TABLE absences (
 -- Tabela de vendas/transações.
 CREATE TABLE sales (
     id UUID PRIMARY KEY,
-    establishment_id UUID NOT NULL REFERENCES establishments(id) ON DELETE CASCADE,
-    client_id UUID NOT NULL REFERENCES clients(id),
-    appointment_id UUID UNIQUE REFERENCES appointments(id),
-    total_amount NUMERIC(10, 2) NOT NULL,
-    discount NUMERIC(10, 2) DEFAULT 0.00,
-    final_amount NUMERIC(10, 2) NOT NULL,
-    payment_method VARCHAR(50),
-    status VARCHAR(50) DEFAULT 'Pendente',
-    transaction_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Tabela para controle de caixa.
-CREATE TABLE cash_flow (
-    id UUID PRIMARY KEY,
-    establishment_id UUID NOT NULL REFERENCES establishments(id) ON DELETE CASCADE,
-    type VARCHAR(10) NOT NULL,
-    description TEXT NOT NULL,
+    appointment_id UUID NOT NULL REFERENCES appointments(id) ON DELETE CASCADE,
+    client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+    professional_id UUID NOT NULL REFERENCES professionals(id) ON DELETE RESTRICT,
+    service_id UUID NOT NULL REFERENCES services(id) ON DELETE RESTRICT,
     amount NUMERIC(10, 2) NOT NULL,
+    payment_method VARCHAR(50),
     transaction_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
