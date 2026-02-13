@@ -23,4 +23,10 @@ app.listen(PORT, () => {
     console.log(`Servidor rodando na porta ${PORT}`);
 });
 
+// servidor funcionando
+
+app.get('/', (req, res) => {
+    res.send('Bem-vindo à API de Agendamento!');
+});
+
 module.exports = app;
