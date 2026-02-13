@@ -4,30 +4,23 @@ const {
     Router
 } = require('express');
 const {
-    createAppointment,
     listAppointments,
     getAppointmentById,
+    createAppointment,
+    update, // Manter 'update' se for usado em outro lugar, ou renomear.
+    deleteAppointment,
     updateStatus,
     reschedule,
-    deleteAppointment,
 } = require('../controller/appointments');
 
 const router = Router();
 
-// Rota para listar agendamentos (com filtros via query string) e criar um novo
-router.route('/')
-    .get(listAppointments)
-    .post(createAppointment);
-
-// Rota para buscar e deletar um agendamento específico
-router.route('/:id')
-    .get(getAppointmentById)
-    .delete(deleteAppointment);
-
-// Rota específica para atualizar apenas o status
-router.patch('/:id/status', updateStatus);
-
-// Rota específica para reagendar
-router.post('/:id/reschedule', reschedule);
+router.get('/appointments', listAppointments);
+router.get('/appointments/:id', getAppointmentById);
+router.post('/appointments', createAppointment);
+router.put('/appointments/:id', update); // Manter 'update' se for usado em outro lugar, ou renomear.
+router.delete('/appointments/:id', deleteAppointment);
+router.patch('/appointments/:id/status', updateStatus);
+router.patch('/appointments/:id/reschedule', reschedule);
 
 module.exports = router;

@@ -6,20 +6,15 @@ const {
     listServices,
     getServiceById,
     updateService,
-    deleteService,
+    deleteService
 } = require('../controller/services');
 
 const router = Router();
 
-// Rota para listar (filtrado por estabelecimento) e criar um novo serviço
-router.route('/')
-    .get(listServices)
-    .post(createService);
-
-// Rotas para buscar, atualizar e deletar um serviço específico
-router.route('/:id')
-    .get(getServiceById)
-    .put(updateService)
-    .delete(deleteService);
+router.post('/services', createService);
+router.get('/services', listServices);
+router.get('/services/:id', getServiceById);
+router.put('/services/:id', updateService);
+router.delete('/services/:id', deleteService);
 
 module.exports = router;

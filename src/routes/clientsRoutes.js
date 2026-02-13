@@ -11,15 +11,10 @@ const {
 
 const router = Router();
 
-// Rota para listar (filtrado por estabelecimento) e criar um novo cliente
-router.route('/')
-    .get(listClients)
-    .post(createClient);
-
-// Rotas para buscar, atualizar e deletar um cliente específico
-router.route('/:id')
-    .get(getClientById)
-    .put(updateClient)
-    .delete(deleteClient);
+router.post('/clients', createClient);
+router.get('/clients', listClients);
+router.get('/clients/:id', getClientById);
+router.put('/clients/:id', updateClient);
+router.delete('/clients/:id', deleteClient);
 
 module.exports = router;

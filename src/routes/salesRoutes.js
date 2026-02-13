@@ -4,17 +4,14 @@ const { Router } = require('express');
 const {
     createSale,
     listSales,
-    getSaleById,
+    listSalesByProfessional
 } = require('../controller/sales');
 
 const router = Router();
 
-// Create a new sale
-router.post('/', createSale);
-// List all sales
-router.get('/', listSales);
-// Get a sale by ID
-router.get('/:id', getSaleById);
+router.post('/sales', createSale);
+router.get('/sales', listSales);
+router.get('/sales/professional/:professional_id', listSalesByProfessional);
 
 module.exports = router;
 
