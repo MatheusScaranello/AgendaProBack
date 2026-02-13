@@ -9,9 +9,6 @@ const {
     deleteProfessional
 } = require('../controller/professionals');
 
-// Importa os routers que serão aninhados
-const absencesRouter = require('./absencesRoutes');
-
 const router = Router();
 
 // Rota para listar (filtrado por estabelecimento) e criar um novo profissional
