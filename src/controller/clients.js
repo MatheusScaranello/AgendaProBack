@@ -1,6 +1,5 @@
 const db = require('../config/dbConfig');
 const { v4: uuidv4 } = require('uuid');
-const AppError = require('../utils/AppError'); // Importa a classe de erro
 
 // Criar um novo cliente
 const createClient = async (req, res, next) => {
