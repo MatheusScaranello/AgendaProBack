@@ -17,5 +17,10 @@ app.use('/api', professionalsRouter);
 app.use('/api', servicesRouter);
 app.use('/api/professionals/:professional_id/absences', absencesRouter);
 
+// Inicia o servidor
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Servidor rodando na porta ${PORT}`);
+});
 
 module.exports = app;
