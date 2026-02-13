@@ -18,36 +18,22 @@ app.use(cors({
 app.use(express.json());
 
 // 3. Rotas
-const establishmentsRoutes = require('./routes/establishmentsRoutes');
 const professionalsRoutes = require('./routes/professionalsRoutes');
 const clientsRoutes = require('./routes/clientsRoutes');
 const servicesRoutes = require('./routes/servicesRoutes');
 const appointmentsRoutes = require('./routes/appointmentsRoutes');
-const productsRoutes = require('./routes/productsRoutes');
 const salesRoutes = require('./routes/salesRoutes');
-const saleItemsRoutes = require('./routes/sale_itemsRoutes');
-const productBatchesRoutes = require('./routes/product_batchesRoutes');
-const assetsRoutes = require('./routes/assetsRoutes');
 const absencesRoutes = require('./routes/absencesRoutes');
 const cashFlowRoutes = require('./routes/cash_flowRoutes');
-const commissionsRoutes = require('./routes/commissionsRoutes');
-const mercadoPagoRoutes = require('./routes/mercadoPagoRoutes');
 
 
-app.use('/api', establishmentsRoutes);
 app.use('/api', professionalsRoutes);
 app.use('/api', clientsRoutes);
 app.use('/api', servicesRoutes);
 app.use('/api', appointmentsRoutes);
-app.use('/api', productsRoutes);
 app.use('/api', salesRoutes);
-app.use('/api', saleItemsRoutes);
-app.use('/api', productBatchesRoutes);
-app.use('/api', assetsRoutes);
 app.use('/api', absencesRoutes);
 app.use('/api', cashFlowRoutes);
-app.use('/api', commissionsRoutes);
-app.use('/api', mercadoPagoRoutes);
 
 
 // 4. Tratamento de Erros (opcional, mas recomendado)
