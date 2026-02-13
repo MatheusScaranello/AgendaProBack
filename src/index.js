@@ -3,41 +3,29 @@ const express = require('express');
 const cors = require('cors');
 const app = express();
 
-// 1. Configuração do CORS (MAIS PERMISSIVA PARA DEBUG)
-// ATENÇÃO: Esta configuração é para fins de teste e não é segura para produção.
-app.use(cors({
-    origin: (origin, callback) => {
-        // Permite todas as origens para teste
-        callback(null, true);
-    },
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    credentials: true
-}));
-
-// 2. Middlewares
+// 1. Configurações do Express
+app.use(cors());
 app.use(express.json());
 
-// 3. Rotas
-const professionalsRoutes = require('./routes/professionalsRoutes');
+// 2. Importar e Usar Rotas
 const clientsRoutes = require('./routes/clientsRoutes');
+const professionalsRoutes = require('./routes/professionalsRoutes');
 const servicesRoutes = require('./routes/servicesRoutes');
-const appointmentsRoutes = require('./routes/appointmentsRoutes');
 const salesRoutes = require('./routes/salesRoutes');
 const absencesRoutes = require('./routes/absencesRoutes');
+const appointmentsRoutes = require('./routes/appointmentsRoutes');
 
-
-app.use('/api', professionalsRoutes);
+// 3. Usar Rotas
 app.use('/api', clientsRoutes);
+app.use('/api', professionalsRoutes);
 app.use('/api', servicesRoutes);
-app.use('/api', appointmentsRoutes);
 app.use('/api', salesRoutes);
 app.use('/api', absencesRoutes);
+app.use('/api', appointmentsRoutes);
 
-
-// 4. Tratamento de Erros (opcional, mas recomendado)
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).send('Algo deu errado!');
+// 4. Rota de Teste
+app.get('/api/test', (req, res) => {
+    res.json({ message: 'API funcionando!' });
 });
 
 // 5. Iniciar o Servidor
