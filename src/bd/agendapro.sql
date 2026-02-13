@@ -26,7 +26,6 @@ CREATE TABLE services (
 -- Tabela de clientes.
 CREATE TABLE clients (
     id UUID PRIMARY KEY,
-    establishment_id UUID NOT NULL REFERENCES establishments(id) ON DELETE CASCADE,
     full_name VARCHAR(255) NOT NULL,
     phone VARCHAR(20),
     email VARCHAR(255) UNIQUE,
@@ -43,17 +42,13 @@ CREATE TABLE clients (
 -- Tabela principal de agendamentos.
 CREATE TABLE appointments (
     id UUID PRIMARY KEY,
-    establishment_id UUID NOT NULL REFERENCES establishments(id) ON DELETE CASCADE,
     client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
     professional_id UUID NOT NULL REFERENCES professionals(id) ON DELETE RESTRICT,
     service_id UUID NOT NULL REFERENCES services(id) ON DELETE RESTRICT,
-    asset_id UUID REFERENCES assets(id) ON DELETE SET NULL,
-    start_time TIMESTAMP WITH TIME ZONE NOT NULL,
-    end_time TIMESTAMP WITH TIME ZONE NOT NULL,
-    status VARCHAR(50) NOT NULL DEFAULT 'Agendado',
-    notes TEXT,
+    appointment_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    status VARCHAR(50) DEFAULT 'scheduled',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP  
 );
 
 -- Tabela para bloqueios e ausências na agenda dos profissionais.
@@ -63,7 +58,8 @@ CREATE TABLE absences (
     start_time TIMESTAMP WITH TIME ZONE NOT NULL,
     end_time TIMESTAMP WITH TIME ZONE NOT NULL,
     reason TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Tabela de vendas/transações.

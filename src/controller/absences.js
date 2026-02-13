@@ -14,13 +14,10 @@ const createAbsence = async (req, res, next) => {
     const newId = uuidv4(); // Gera o novo UUID no backend
 
     try {
-        const query = `
-            INSERT INTO absences (id, professional_id, start_time, end_time, reason)
-            VALUES ($1, $2, $3, $4, $5)
-            RETURNING *;
-        `;
-        const values = [newId, professional_id, start_time, end_time, reason];
-        const result = await db.query(query, values);
+        const result = await db.query(
+            'INSERT INTO absences (id, professional_id, start_time, end_time, reason) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+            [newId, professional_id, start_time, end_time, reason]
+        );
         res.status(201).json(result.rows[0]);
     } catch (error) {
         next(error);
