@@ -24,7 +24,7 @@ app.use('/api', absencesRoutes);
 app.use('/api', appointmentsRoutes);
 
 // 4. Rota de Teste
-app.get('/api/test', (req, res) => {
+app.get('/', (req, res) => {
     res.json({ message: 'API funcionando!' });
 });
 
