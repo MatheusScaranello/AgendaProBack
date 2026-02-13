@@ -11,11 +11,9 @@ app.use(express.json());
 const professionalsRouter = require('./routes/professionalsRoutes');
 const servicesRouter = require('./routes/servicesRoutes');
 const absencesRouter = require('./routes/absencesRoutes');
-const appointmentsRouter = require('./routes/appointmentsRoutes');
 const clientsRouter = require('./routes/clientsRoutes');
 
 // Usa os routers
-app.use('/api', appointmentsRouter);
 app.use('/api', clientsRouter);
 app.use('/api', professionalsRouter);
 app.use('/api', servicesRouter);
