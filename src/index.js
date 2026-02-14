@@ -23,14 +23,15 @@ app.use('/api', salesRouter);
 app.use('/api', clientsRouter);
 app.use('/api', appointmentsRouter);
 
-// Inicia o servidor
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Servidor rodando na porta ${PORT}`);
-});
+// Apenas inicie o servidor na porta localmente, não no Vercel
+if (process.env.NODE_ENV !== 'production') {
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () => {
+        console.log(`Servidor rodando na porta ${PORT}`);
+    });
+}
 
-// servidor funcionando
-
+// Servidor funcionando
 app.get('/', (req, res) => {
     res.send('Bem-vindo à API de Agendamento!');
 });
