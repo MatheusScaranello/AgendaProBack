@@ -41,8 +41,42 @@ const listSalesByProfessional = async (req, res, next) => {
     }
 };
 
+// Deletar uma venda (opcional, dependendo dos requisitos do sistema)
+const deleteSale = async (req, res, next) => {
+    const { id } = req.params;
+    try {
+        const result = await db.query('DELETE FROM sales WHERE id = $1 RETURNING *', [id]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Venda não encontrada' });
+        }
+        res.status(200).json({ message: 'Venda deletada com sucesso' });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// Editar uma venda (opcional, dependendo dos requisitos do sistema)
+const updateSale = async (req, res, next) => {
+    const { id } = req.params;
+    const { amount, payment_method } = req.body;
+    try {
+        const result = await db.query(
+            'UPDATE sales SET amount = $1, payment_method = $2, transaction_date = CURRENT_TIMESTAMP WHERE id = $3 RETURNING *',
+            [amount, payment_method, id]
+        );
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Venda não encontrada' });
+        }
+        res.status(200).json(result.rows[0]);
+    } catch (err) {
+        next(err);
+    }
+};
+
 module.exports = {
     createSale,
     listSales,
-    listSalesByProfessional
+    listSalesByProfessional,
+    deleteSale,
+    updateSale
 };

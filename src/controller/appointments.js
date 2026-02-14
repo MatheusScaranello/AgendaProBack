@@ -71,9 +71,25 @@ async function deleteAppointment(req, res) {
     }
 }
 
+// getAppointmentById, updateStatus, reschedule, and other functions can be implemented similarly based on the requirements.
+async function getAppointmentById(req, res) {
+    const { id } = req.params;
+    try {
+        const result = await db.query('SELECT * FROM appointments WHERE id = $1', [id]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Agendamento não encontrado' });
+        }
+        res.status(200).json(result.rows[0]);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Erro ao buscar agendamento' });
+    }
+}
+
 module.exports = {
     createAppointment,
     listAppointments,
     updateAppointment,
-    deleteAppointment
+    deleteAppointment,
+    getAppointmentById
 };

@@ -7,13 +7,15 @@ const {
     createAppointment,
     listAppointments,
     updateAppointment,
-    deleteAppointment
+    deleteAppointment,
+    getAppointmentById
 } = require('../controller/appointments');
 
 const router = Router();
 
 router.post('/appointments', createAppointment);
 router.get('/appointments', listAppointments);
+router.get('/appointments/:id', getAppointmentById);
 router.put('/appointments/:id', updateAppointment);
 router.delete('/appointments/:id', deleteAppointment);
 
