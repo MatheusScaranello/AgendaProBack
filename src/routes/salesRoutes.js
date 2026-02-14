@@ -11,7 +11,7 @@ const router = Router();
 
 router.post('/sales', createSale);
 router.get('/sales', listSales);
-router.get('/sales/professional/:professional_id', listSalesByProfessional);
+router.get('/professionals/:professional_id/sales', listSalesByProfessional);
 
 module.exports = router;
 

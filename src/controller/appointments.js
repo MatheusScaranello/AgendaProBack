@@ -1,122 +1,79 @@
 const db = require('../config/dbConfig');
 
-// GET /appointments
-const getAll = async (req, res, next) => {
-    try {
-        const {
-            rows
-        } = await db.query('SELECT * FROM appointments ORDER BY start_time ASC');
-        res.json(rows);
-    } catch (err) {
-        next(err);
-    }
-};
+// CREATE TABLE appointments (
+//     id UUID PRIMARY KEY,
+//     client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+//     professional_id UUID NOT NULL REFERENCES professionals(id) ON DELETE RESTRICT,
+//     service_id UUID NOT NULL REFERENCES services(id) ON DELETE RESTRICT,
+//     appointment_time TIMESTAMP WITH TIME ZONE NOT NULL,
+//     status VARCHAR(50) DEFAULT 'scheduled',
+//     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+//     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP  
+// );
 
-// GET /appointments/:id
-const getById = async (req, res, next) => {
-    const { id } = req.params;
-    try {
-        const {
-            rows
-        } = await db.query('SELECT * FROM appointments WHERE id = $1', [id]);
-        if (rows.length === 0) {
-            return res.status(404).json({ message: 'Agendamento não encontrado' });
-        }
-        res.json(rows[0]);
-    } catch (err) {
-        next(err);
-    }
-};
-
-// POST /appointments
-const create = async (req, res, next) => {
+// Create a new appointment
+async function createAppointment(req, res) {
     const { client_id, professional_id, service_id, appointment_time } = req.body;
-    const newId = require('uuid').v4(); // Gerar um UUID para o novo agendamento
+
     try {
         const result = await db.query(
-            'INSERT INTO appointments (id, client_id, professional_id, service_id, appointment_time) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-            [newId, client_id, professional_id, service_id, appointment_time]
+            `INSERT INTO appointments (client_id, professional_id, service_id, appointment_time) 
+             VALUES ($1, $2, $3, $4) RETURNING *`,
+            [client_id, professional_id, service_id, appointment_time]
         );
         res.status(201).json(result.rows[0]);
-    } catch (err) {
-        next(err);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Erro ao criar agendamento' });
     }
-};
+}
 
-// PUT /appointments/:id
-const update = async (req, res, next) => {
-    const { id } = req.params;
-    const { client_id, professional_id, service_id, appointment_time, status } = req.body;
+// Additional functions for listing, updating, and deleting appointments can be added here
+async function listAppointments(req, res) {
     try {
-        const result = await db.query(
-            'UPDATE appointments SET client_id = $1, professional_id = $2, service_id = $3, appointment_time = $4, status = $5, updated_at = CURRENT_TIMESTAMP WHERE id = $6 RETURNING *',
-            [client_id, professional_id, service_id, appointment_time, status, id]
-        );
-        if (result.rows.length === 0) {
-            return res.status(404).json({ message: 'Agendamento não encontrado' });
-        }
-        res.json(result.rows[0]);
-    } catch (err) {
-        next(err);
+        const result = await db.query('SELECT * FROM appointments');
+        res.status(200).json(result.rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Erro ao listar agendamentos' });
     }
-};
+}
 
-// DELETE /appointments/:id
-const deleteAppointment = async (req, res, next) => {
-    const { id } = req.params;
-    try {
-        const result = await db.query('DELETE FROM appointments WHERE id = $1 RETURNING *', [id]);
-        if (result.rows.length === 0) {
-            return res.status(404).json({ message: 'Agendamento não encontrado' });
-        }
-        res.status(204).send(); // Sucesso, sem conteúdo
-    } catch (err) {
-        next(err);
-    }
-};
-
-// PATCH /appointments/:id/status
-const updateStatus = async (req, res, next) => {
+async function updateAppointment(req, res) {
     const { id } = req.params;
     const { status } = req.body;
     try {
         const result = await db.query(
-            'UPDATE appointments SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *',
+            `UPDATE appointments SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *`,
             [status, id]
         );
         if (result.rows.length === 0) {
-            return res.status(404).json({ message: 'Agendamento não encontrado' });
+            return res.status(404).json({ error: 'Agendamento não encontrado' });
         }
-        res.json(result.rows[0]);
-    } catch (err) {
-        next(err);
+        res.status(200).json(result.rows[0]);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Erro ao atualizar agendamento' });
     }
-};
+}
 
-// PATCH /appointments/:id/reschedule
-const reschedule = async (req, res, next) => {
+async function deleteAppointment(req, res) {
     const { id } = req.params;
-    const { appointment_time } = req.body;
     try {
-        const result = await db.query(
-            'UPDATE appointments SET appointment_time = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *',
-            [appointment_time, id]
-        );
+        const result = await db.query('DELETE FROM appointments WHERE id = $1 RETURNING *', [id]);
         if (result.rows.length === 0) {
-            return res.status(404).json({ message: 'Agendamento não encontrado' });
+            return res.status(404).json({ error: 'Agendamento não encontrado' });
         }
-        res.json(result.rows[0]);
-    } catch (err) {
-        next(err);
+        res.status(200).json({ message: 'Agendamento deletado com sucesso' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Erro ao deletar agendamento' });
     }
-};
+}
 
 module.exports = {
-    listAppointments,
-    getAppointmentById,
     createAppointment,
-    update, // Manter 'update' se for usado em outro lugar, ou renomear.
-    deleteAppointment,
-    updateStatus,
-    reschedule,
+    listAppointments,
+    updateAppointment,
+    deleteAppointment
 };
