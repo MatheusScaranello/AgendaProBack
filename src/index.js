@@ -1,6 +1,8 @@
 
 require('dotenv').config();
 
+console.log('JWT carregado:', Boolean(process.env.JWT_SECRET));
+
 const express = require('express');
 const cors = require('cors');
 const db = require('./config/dbConfig');
@@ -40,7 +42,7 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
- // Importação das rotas existentes
+// Importação das rotas
 const professionalsRouter = require('./routes/professionalsRoutes');
 const servicesRouter = require('./routes/servicesRoutes');
 const absencesRouter = require('./routes/absencesRoutes');
@@ -52,11 +54,15 @@ const establishmentsRouter = require('./routes/establishmentsRoutes');
 // Registro das rotas
 app.use('/api', professionalsRouter);
 app.use('/api', servicesRouter);
-app.use('/api/professionals/:professional_id/absences', absencesRouter);
+app.use(
+  '/api/professionals/:professional_id/absences',
+  absencesRouter
+);
 app.use('/api', salesRouter);
 app.use('/api', clientsRouter);
 app.use('/api', appointmentsRouter);
 app.use('/api/establishments', establishmentsRouter);
+
 // Tratamento de rotas inexistentes
 app.use((req, res) => {
   res.status(404).json({
